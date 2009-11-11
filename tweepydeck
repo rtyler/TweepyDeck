@@ -183,7 +183,7 @@ class Tweep(object):
         widget.append_column(column)
 
     def _createListView(self):
-        column = gtk.TreeViewColumn('Image', gtk.CellRendererPixbuf(), pixbuf=0)
+        column = gtk.TreeViewColumn('', gtk.CellRendererPixbuf(), pixbuf=0)
         self._addColumn(self.friendsTimeline, column)
 
         cell = gtk.CellRendererText()
