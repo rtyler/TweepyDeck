@@ -1,18 +1,63 @@
 #!/usr/bin/env python
 import pygtk
 pygtk.require('2.0')
+import gobject
 import gtk
+import gtk.gdk
 import gtk.glade
+import pango
 
 import base64
+import getpass
 import httplib
+import logging
+import os.path
 import string
+import threading
+import time
 import urllib
+import urllib2
+
+from optparse import OptionParser
 
 try:
     import json
 except ImportError:
     import simplejson as json
+
+if os.getenv('DEBUG'):
+    logging.basicConfig(level=logging.DEBUG)
+
+gobject.threads_init()
+
+INTERVAL = 120
+DEFAULT_FETCH = 35
+
+def threaded(f):
+    def wrapper(*args, **kwargs):
+        t = threading.Thread(target=f, args=args, kwargs=kwargs)
+        t.start()
+    return wrapper
+
+def readable_time():
+    return time.strftime('%H:%M:%S', time.localtime())
+
+def accessor(func):
+    return property(**func())
+
+def saveImageToFile(who, img_url):
+    img = '/tmp/%s.png' % who
+    if os.path.exists(img):
+        return img
+
+    web_fd = urllib2.urlopen(img_url)
+    data = web_fd.read()
+    web_fd.close()
+
+    fd = open(img, 'w')
+    fd.write(data)
+    fd.close()
+    return img
 
 class TwitterApi(object):
     user = None
@@ -26,6 +71,7 @@ class TwitterApi(object):
         return 'Basic ' + string.strip(base64.encodestring(self.user + ':' + self.password))
 
     def _fetch(self, url):
+        logging.debug('_fetch("%s")' % url)
         connection = httplib.HTTPSConnection('twitter.com')
         connection.putrequest('GET', url)
         connection.putheader('Authorization', self._auth_header())
@@ -37,30 +83,206 @@ class TwitterApi(object):
         finally:
             connection.close()
 
-    def timeline(self, since_id=None, count=10):
+    @threaded
+    def timeline(self, since_id=None, count=DEFAULT_FETCH, callback=None, loadImages=True):
         args = {'count' : count}
         if since_id:
             args['since_id'] = since_id
-        return self._fetch('/statuses/friends_timeline.json?%s' % urllib.urlencode(args))
+        data = self._fetch('/statuses/friends_timeline.json?%s' % urllib.urlencode(args))
+        if loadImages:
+            for status in data:
+                try:
+                    saveImageToFile(status['user']['screen_name'], 
+                            status['user']['profile_image_url'])
+                except Exception, ex:
+                    logging.error('Downloading failed: %s %s' % (status, ex))
+        if not callback:
+            return data
+        gobject.idle_add(callback, data) 
+
+    @threaded
+    def update(self, status, in_reply_to=None, callback=None):
+        time.sleep(3)
+        gobject.idle_add(callback, {})
+        return
+        args = {'status' : status}
+        if in_reply_to:
+            args['in_reply_to_status_id'] = in_reply_to
+        args = urllib.urlencode(args)
+        headers = {
+                'Content-type' : 'application/x-www-form-urlencoded',
+                'Accept' : 'text/plain',
+            }
+        headers['Authorization'] = self._auth_header()
+        connection = httplib.HTTPSConnection('twitter.com')
+        connection.request('POST', '/statuses/update.json', args, headers)
+        try:
+            response = connection.getresponse()
+            data = json.loads(response.read())
+            if not callback:
+                return data
+            else:
+                gobject.idle_add(callback, data)
+        finally:
+            connection.close()
+
 
 
 class Tweep(object):
     widget_tree = None
+    last_status = None
+    since_id = None
 
     def destroy(self, widget, data=None):
         gtk.main_quit()
 
-    def __init__(self):
-        self.widget_tree = gtk.glade.XML('tweepydeck.glade')
+    def status_key(self, widget, event, **kwargs):
+        if gtk.gdk.keyval_name(event.keyval) == 'Return':
+            status = widget.get_text()
+            if status and not status == self.last_status:
+                self.last_status = status
+                self.statusbar = 'Updating...'
+                self.statusentry = ''
+                self.api.update(status, callback=self._status_complete)
 
-        self.window = self.widget_tree.get_widget('TweepMainWindow')
-        if self.window:
-            self.window.connect('destroy', self.destroy)
+    def show_about(self, widget, **kwargs):
+        dialog = self.widget_tree.get_widget('TweepyAboutDialog')
+        if dialog:
+            dialog.run()
+            dialog.destroy()
+
+    @accessor
+    def statusbar():
+        doc = 'Set main window status bar'
+        
+        def fset(self, value):
+            label = self.widget_tree.get_widget('TweepyStatusBar')
+            if label:
+                label.push(1, value)
+        return locals()
+
+    @accessor
+    def statusentry():
+        doc = 'Get/set the main window status entry textfield'
+
+        def fget(self):
+            entry = self.widget_tree.get_widget('StatusEntry')
+            if entry:
+                return label.get_text()
+        def fset(self, value):
+            entry = self.widget_tree.get_widget('StatusEntry')
+            if entry:
+                entry.set_text(value)
+        return locals()
+    
+    def _status_complete(self, data, **kwargs):
+        self.statusbar = 'Status last updated at %s' % readable_time()
+
+    def _addColumn(self, widget, column):
+        column.set_resizable(True)      
+        widget.append_column(column)
+
+    def _createListView(self):
+        column = gtk.TreeViewColumn('Image', gtk.CellRendererPixbuf(), pixbuf=0)
+        self._addColumn(self.friendsTimeline, column)
+
+        cell = gtk.CellRendererText()
+        cell.set_property('wrap-mode', pango.WRAP_WORD)
+        column = gtk.TreeViewColumn('Who', cell, markup=1)
+        self._addColumn(self.friendsTimeline, column)
+
+        column = gtk.TreeViewColumn('What', gtk.CellRendererText(), markup=2)
+        self._addColumn(self.friendsTimeline, column)
+
+        column = gtk.TreeViewColumn('When', gtk.CellRendererText(), text=3)
+        self._addColumn(self.friendsTimeline, column)
+
+
+    def _markupStatus(self, status):
+        status = status.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        pieces = status.split(' ')
+        rc = []
+        for piece in pieces:
+            if piece.startswith('@'):
+                rc.append('<b>%s</b>' % piece)
+            elif piece.startswith('http://'):
+                rc.append('<span foreground="blue"><b>%s</b></span>' % piece)
+            else:
+                rc.append(piece)
+        return ' '.join(rc)
+
+    def _updateFriendsTimeline(self, data, **kwargs):
+        try:
+            if data:
+                logging.debug('_updateFriendsTimeline, # items: %s' % len(data))
+                self.since_id = data[0]['id']
+                for i, status in enumerate(data):
+                    what = status['text']
+                    
+                    # *Very* crude dupe checking
+                    if i > 0:
+                        prev = data[i-1]
+                        if prev['text'] == what:
+                            continue
+
+                    who = status['user']['screen_name']
+                    when = status['created_at']
+                    img_url = status['user']['profile_image_url']
+
+                    image = gtk.gdk.pixbuf_new_from_file_at_size(
+                                    saveImageToFile(who, img_url), 50, 50)
+
+                    # Mark it up
+                    who = '<b>%s</b>' % who
+                    what = self._markupStatus(what)
+
+                    self.friendsTimelineModel.append((image, who, what, when))
+        finally:
+            gobject.timeout_add_seconds(INTERVAL, self._friendsTimer)
+
+    def _friendsTimer(self):
+        self.api.timeline(since_id=self.since_id, callback=self._updateFriendsTimeline)
+        return False
+
+    def __init__(self, user, password, searches):
+        self.api = TwitterApi(user, password)
+
+        self.widget_tree = gtk.glade.XML('tweepydeck.glade')
+        self.window = self.widget_tree.get_widget('TweepyMainWindow')
+        self.window.connect('destroy', self.destroy)
+
+        self.friendsTimeline = self.widget_tree.get_widget('FriendsTreeView')
+        self.friendsTimelineModel = gtk.ListStore(gtk.gdk.Pixbuf, str, str, str)
+        self.friendsTimeline.set_model(self.friendsTimelineModel)
+        self._createListView()
+
+        self.friendsTimer = threading.Timer(1, self._friendsTimer)
+        self.friendsTimer.start()
+
+
+        self._events = {
+                'on_QuitMenuItem_activate' : self.destroy,
+                'on_AboutMenuItem_activate' : self.show_about,
+                'on_StatusEntry_key_release_event' : self.status_key,
+            }
+        self.widget_tree.signal_autoconnect(self._events)
+
 
     def main(self):
         gtk.main()
 
 if __name__ == "__main__":
-    Tweep().main()
+    op = OptionParser()
+    op.add_option('-u', '--user', dest='user', help='Your twitter username')
+    op.add_option('-s', '--searches', default=None, dest='searches', 
+                    help='Comma-separated list of searches')
+    opts, args = op.parse_args()
+    if not opts.user:
+        op.print_help()
+        quit()
+
+    password = getpass.getpass('Twitter password for %s: ' % opts.user)
+
+    Tweep(opts.user, password, None).main()
 
 # vim: shiftwidth=4 tabstop=4 expandtab
