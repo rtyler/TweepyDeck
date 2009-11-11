@@ -1,0 +1,66 @@
+#!/usr/bin/env python
+import pygtk
+pygtk.require('2.0')
+import gtk
+import gtk.glade
+
+import base64
+import httplib
+import string
+import urllib
+
+try:
+    import json
+except ImportError:
+    import simplejson as json
+
+class TwitterApi(object):
+    user = None
+    password = None
+    
+    def __init__(self, user, password, **kwargs):
+        self.user = user
+        self.password = password
+
+    def _auth_header(self):
+        return 'Basic ' + string.strip(base64.encodestring(self.user + ':' + self.password))
+
+    def _fetch(self, url):
+        connection = httplib.HTTPSConnection('twitter.com')
+        connection.putrequest('GET', url)
+        connection.putheader('Authorization', self._auth_header())
+        connection.endheaders()
+
+        try:
+            response = connection.getresponse()
+            return json.loads(response.read())
+        finally:
+            connection.close()
+
+    def timeline(self, since_id=None, count=10):
+        args = {'count' : count}
+        if since_id:
+            args['since_id'] = since_id
+        return self._fetch('/statuses/friends_timeline.json?%s' % urllib.urlencode(args))
+
+
+class Tweep(object):
+    widget_tree = None
+
+    def destroy(self, widget, data=None):
+        gtk.main_quit()
+
+    def __init__(self):
+        self.widget_tree = gtk.glade.XML('tweepydeck.glade')
+
+        self.window = self.widget_tree.get_widget('TweepMainWindow')
+        if self.window:
+            self.window.connect('destroy', self.destroy)
+
+    def main(self):
+        gtk.main()
+
+if __name__ == "__main__":
+    Tweep().main()
+
+# vim: shiftwidth=4 tabstop=4 expandtab
