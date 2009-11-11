@@ -216,6 +216,7 @@ class Tweep(object):
             if data:
                 logging.debug('_updateFriendsTimeline, # items: %s' % len(data))
                 self.since_id = data[0]['id']
+                data.reverse()
                 for i, status in enumerate(data):
                     what = status['text']
                     
@@ -236,7 +237,8 @@ class Tweep(object):
                     who = '<b>%s</b>' % who
                     what = self._markupStatus(what)
 
-                    self.friendsTimelineModel.append((image, who, what, when))
+                    self.friendsTimelineModel.insert(0, (image, who, what, when))
+                    self.friendsTimeline.scroll_to_point(-1, 1)
         finally:
             gobject.timeout_add_seconds(INTERVAL, self._friendsTimer)
 
