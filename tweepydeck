@@ -230,6 +230,8 @@ class Timeline(object):
                 rc.append('<b>%s</b>' % piece)
             elif piece.startswith('http://'):
                 rc.append('<span foreground="blue"><b>%s</b></span>' % piece)
+            elif piece.startswith('#'):
+                rc.append('<span foreground="#FF7F00"><b>%s</b></span>' % piece)
             else:
                 rc.append(piece)
         return ' '.join(rc)
