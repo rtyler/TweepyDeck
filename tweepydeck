@@ -192,6 +192,7 @@ class Timeline(object):
                     # Mark it up
                     who = '<b>%s</b>' % who
                     what = self._markupStatus(what)
+                    what += '    <i><span size="x-small" weight="light">%s</span></i>' % when
                     self.model.insert(0, (image, who, what))
                     self.widget.scroll_to_point(-1, 1)
         finally:
@@ -215,9 +216,6 @@ class Timeline(object):
 
         column = gtk.TreeViewColumn('What', gtk.CellRendererText(), markup=2)
         self._addColumn(self.widget, column)
-
-        #column = gtk.TreeViewColumn('When', gtk.CellRendererText(), text=3)
-        #self._addColumn(self.widget, column)
 
     def _markupStatus(self, status):
         status = status.replace('\n', ' ').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
