@@ -102,9 +102,6 @@ class TwitterApi(object):
 
     @threaded
     def update(self, status, in_reply_to=None, callback=None):
-        time.sleep(3)
-        gobject.idle_add(callback, {})
-        return
         args = {'status' : status}
         if in_reply_to:
             args['in_reply_to_status_id'] = in_reply_to
