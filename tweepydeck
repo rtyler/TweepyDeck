@@ -192,14 +192,13 @@ class Timeline(object):
                     # Mark it up
                     who = '<b>%s</b>' % who
                     what = self._markupStatus(what)
-
-                    self.model.insert(0, (image, who, what, when))
+                    self.model.insert(0, (image, who, what))
                     self.widget.scroll_to_point(-1, 1)
         finally:
             gobject.timeout_add_seconds(INTERVAL, self._timerCallback)
 
     def _generateModel(self):
-        return gtk.ListStore(gtk.gdk.Pixbuf, str, str, str)
+        return gtk.ListStore(gtk.gdk.Pixbuf, str, str)
 
     def _addColumn(self, widget, column):
         column.set_resizable(True)      
@@ -217,8 +216,8 @@ class Timeline(object):
         column = gtk.TreeViewColumn('What', gtk.CellRendererText(), markup=2)
         self._addColumn(self.widget, column)
 
-        column = gtk.TreeViewColumn('When', gtk.CellRendererText(), text=3)
-        self._addColumn(self.widget, column)
+        #column = gtk.TreeViewColumn('When', gtk.CellRendererText(), text=3)
+        #self._addColumn(self.widget, column)
 
     def _markupStatus(self, status):
         status = status.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
