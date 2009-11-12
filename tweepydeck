@@ -220,7 +220,7 @@ class Timeline(object):
         #self._addColumn(self.widget, column)
 
     def _markupStatus(self, status):
-        status = status.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        status = status.replace('\n', ' ').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
         pieces = status.split(' ')
         rc = []
         for piece in pieces:
