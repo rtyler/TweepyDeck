@@ -200,6 +200,7 @@ class Timeline(object):
                             continue
 
                     who, when, img_url = self._grabNecessities(status)
+                    self.users.add(who)
                     image = None
                     try:
                         image = gtk.gdk.pixbuf_new_from_file_at_size(
