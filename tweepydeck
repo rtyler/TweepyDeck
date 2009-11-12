@@ -45,8 +45,11 @@ def readable_time():
 def accessor(func):
     return property(**func())
 
+def cachedImagePath(who):
+    return '/tmp/%s.png' % who
+
 def saveImageToFile(who, img_url):
-    img = '/tmp/%s.png' % who
+    img = cachedImagePath(who)
     if os.path.exists(img):
         return img
 
@@ -236,6 +239,9 @@ class Tweep(object):
                                     saveImageToFile(who, img_url), 50, 50)
                     except Exception, ex:
                         logging.error('Failed to laod image: %s' % ex)
+                        if os.path.exists(cachedImagePath(who)):
+                            # Prune the dead image file if it's there
+                            os.unlink(cachedImagePath(who))
                     
                     # Mark it up
                     who = '<b>%s</b>' % who
