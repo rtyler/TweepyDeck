@@ -18,6 +18,7 @@
   <property name="gravity">GDK_GRAVITY_NORTH_WEST</property>
   <property name="focus_on_map">True</property>
   <property name="urgency_hint">False</property>
+  <signal name="size_request" handler="on_TweepyMainWindow_size_request" last_modification_time="Thu, 12 Nov 2009 07:44:41 GMT"/>
 
   <child>
     <widget class="GtkVBox" id="OuterVBox">
@@ -141,17 +142,18 @@
 	    <widget class="GtkScrolledWindow" id="FriendsScrolledWindow">
 	      <property name="visible">True</property>
 	      <property name="can_focus">True</property>
-	      <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+	      <property name="hscrollbar_policy">GTK_POLICY_NEVER</property>
 	      <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
 	      <property name="shadow_type">GTK_SHADOW_IN</property>
 	      <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
 
 	      <child>
 		<widget class="GtkTreeView" id="FriendsTreeView">
+		  <property name="width_request">150</property>
 		  <property name="visible">True</property>
 		  <property name="can_focus">True</property>
 		  <property name="headers_visible">True</property>
-		  <property name="rules_hint">False</property>
+		  <property name="rules_hint">True</property>
 		  <property name="reorderable">True</property>
 		  <property name="enable_search">False</property>
 		  <property name="fixed_height_mode">False</property>
@@ -171,22 +173,24 @@
 	    <widget class="GtkScrolledWindow" id="RepliesScrolledWindow">
 	      <property name="visible">True</property>
 	      <property name="can_focus">True</property>
-	      <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+	      <property name="hscrollbar_policy">GTK_POLICY_NEVER</property>
 	      <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
 	      <property name="shadow_type">GTK_SHADOW_IN</property>
 	      <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
 
 	      <child>
 		<widget class="GtkTreeView" id="RepliesTreeView">
+		  <property name="width_request">150</property>
 		  <property name="visible">True</property>
 		  <property name="can_focus">True</property>
 		  <property name="headers_visible">True</property>
-		  <property name="rules_hint">False</property>
+		  <property name="rules_hint">True</property>
 		  <property name="reorderable">True</property>
 		  <property name="enable_search">False</property>
 		  <property name="fixed_height_mode">False</property>
 		  <property name="hover_selection">False</property>
 		  <property name="hover_expand">True</property>
+		  <signal name="check_resize" handler="on_RepliesTreeView_check_resize" last_modification_time="Thu, 12 Nov 2009 06:25:30 GMT"/>
 		</widget>
 	      </child>
 	    </widget>

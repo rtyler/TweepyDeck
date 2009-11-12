@@ -207,14 +207,18 @@ class Timeline(object):
 
     def _createListView(self):
         column = gtk.TreeViewColumn('', gtk.CellRendererPixbuf(), pixbuf=0)
+        column.set_min_width(50)
+        self._addColumn(self.widget, column)
+
+        cell = gtk.CellRendererText()
+        column = gtk.TreeViewColumn('Who', cell, markup=1)
+        column.set_min_width(20)
         self._addColumn(self.widget, column)
 
         cell = gtk.CellRendererText()
         cell.set_property('wrap-mode', pango.WRAP_WORD)
-        column = gtk.TreeViewColumn('Who', cell, markup=1)
-        self._addColumn(self.widget, column)
-
-        column = gtk.TreeViewColumn('What', gtk.CellRendererText(), markup=2)
+        cell.set_property('wrap-width', 350)
+        column = gtk.TreeViewColumn('What', cell, markup=2)
         self._addColumn(self.widget, column)
 
     def _markupStatus(self, status):
@@ -327,7 +331,6 @@ class Tweep(object):
                 'on_StatusEntry_key_press_event' : self.status_autocomplete,
             }
         self.widget_tree.signal_autoconnect(self._events)
-
 
     def main(self):
         gtk.main()
