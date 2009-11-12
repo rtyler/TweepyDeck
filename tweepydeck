@@ -90,18 +90,39 @@ class TwitterApi(object):
             connection.close()
 
     @threaded
-    def timeline(self, timeline='friends_timeline.json', since_id=None, count=DEFAULT_FETCH, callback=None, loadImages=True):
+    def timeline(self, timeline=None, since_id=None, count=DEFAULT_FETCH, 
+            callback=None, loadImages=True):
         args = {'count' : count}
+        search = False
+        if timeline.startswith('search.json'):
+            # Special case search timeline
+            search = True
+            args = {'rpp' : count}
+
         if since_id:
             args['since_id'] = since_id
-        data = self._fetch('/statuses/%s?%s' % (timeline, urllib.urlencode(args)))
+
+        sep = '?'
+        if timeline.find('?') >= 0:
+            sep = '&'
+        data = self._fetch('/%s%s%s' % (timeline, sep, urllib.urlencode(args)))
         if loadImages:
+            if search:
+                data = data['results']
             for status in data:
+                who, img = None, None
+                if not search:
+                    who = status['user']['screen_name']
+                    img = status['user']['profile_image_url']
+                else:
+                    who = status['from_user']
+                    img = status['profile_image_url']
+
                 try:
-                    saveImageToFile(status['user']['screen_name'], 
-                            status['user']['profile_image_url'])
+                    saveImageToFile(who, img)
                 except Exception, ex:
                     logging.error('Downloading failed: %s %s' % (status, ex))
+
         if not callback:
             return data
         gobject.idle_add(callback, data) 
@@ -135,7 +156,7 @@ class Timeline(object):
     model = None
     timer = None
     since_id = None
-    timeline = 'friends_timeline.json'
+    timeline = 'statuses/friends_timeline.json'
     users = None
 
     def __init__(self, treeview, api, **kwargs):
@@ -159,10 +180,14 @@ class Timeline(object):
                         callback=self._timerUpdatedCallback)
         return False
 
+    def _grabNecessities(self, status):
+        return status['user']['screen_name'], status['created_at'], status['user']['profile_image_url']
+
+
     def _timerUpdatedCallback(self, data, **kwargs):
         try:
             if data:
-                logging.debug('_updateFriendsTimeline, # items: %s' % len(data))
+                logging.debug('_timerUpdatedCallback [%s], # items: %s' % (self.timeline, len(data)))
                 self.since_id = data[0]['id']
                 data.reverse()
                 for i, status in enumerate(data):
@@ -174,11 +199,7 @@ class Timeline(object):
                         if prev['text'] == what:
                             continue
 
-                    who = status['user']['screen_name']
-                    self.users.add(who)
-                    when = status['created_at']
-                    img_url = status['user']['profile_image_url']
-
+                    who, when, img_url = self._grabNecessities(status)
                     image = None
                     try:
                         image = gtk.gdk.pixbuf_new_from_file_at_size(
@@ -217,7 +238,7 @@ class Timeline(object):
 
         cell = gtk.CellRendererText()
         cell.set_property('wrap-mode', pango.WRAP_WORD)
-        cell.set_property('wrap-width', 350)
+        cell.set_property('wrap-width', 300)
         column = gtk.TreeViewColumn('What', cell, markup=2)
         self._addColumn(self.widget, column)
 
@@ -247,7 +268,26 @@ class Timeline(object):
         return ' '.join(markup())
 
 class RepliesTimeline(Timeline):
-    timeline = 'mentions.json'
+    timeline = 'statuses/mentions.json'
+
+class SearchesTimeline(Timeline):
+    timeline = 'search.json'
+    searches = None
+    count = 30
+
+    def __init__(self, widget, api, searches, **kwargs):
+        super(SearchesTimeline, self).__init__(widget, api, **kwargs)
+        self.searches = searches
+
+    def _grabNecessities(self, status):
+        return status['from_user'], status['created_at'], status['profile_image_url']
+
+    def _timerCallback(self, **kwargs):
+        args = {'q' : ' OR '.join(self.searches)}
+        timeline = '%s?%s' % (self.timeline, urllib.urlencode(args))
+        self.api.timeline(timeline=timeline, since_id=self.since_id, 
+                        callback=self._timerUpdatedCallback, count=self.count)
+        return False
 
 class Tweep(object):
     widget_tree = None
@@ -332,6 +372,12 @@ class Tweep(object):
         self.replies = RepliesTimeline(self.widget_tree.get_widget('RepliesTreeView'), 
                         self.api)
         self.timelines.append(self.replies)
+
+        if searches:
+            self.searches = SearchesTimeline(self.widget_tree.get_widget('SearchTreeView'), self.api, searches)
+            self.timelines.append(self.searches)
+        else:
+            self.widget_tree.get_widget('SearchScrolledWindow').destroy()
     
         for t in self.timelines:
             t.start()
@@ -358,7 +404,8 @@ if __name__ == "__main__":
         quit()
 
     password = getpass.getpass('Twitter password for %s: ' % opts.user)
+    searches = opts.searches and opts.searches.split(',')
 
-    Tweep(opts.user, password, None).main()
+    Tweep(opts.user, password, searches).main()
 
 # vim: shiftwidth=4 tabstop=4 expandtab
