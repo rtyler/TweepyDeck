@@ -227,6 +227,7 @@
 	      <property name="activates_default">False</property>
 	      <signal name="focus" handler="on_StatusEntry_focus" last_modification_time="Wed, 11 Nov 2009 08:33:40 GMT"/>
 	      <signal name="key_release_event" handler="on_StatusEntry_key_release_event" last_modification_time="Wed, 11 Nov 2009 08:34:13 GMT"/>
+	      <signal name="key_press_event" handler="on_StatusEntry_key_press_event" last_modification_time="Thu, 12 Nov 2009 06:57:38 GMT"/>
 	    </widget>
 	    <packing>
 	      <property name="padding">0</property>

@@ -136,6 +136,7 @@ class Timeline(object):
     timer = None
     since_id = None
     timeline = 'friends_timeline.json'
+    users = None
 
     def __init__(self, treeview, api, **kwargs):
         self.__dict__.update(kwargs)
@@ -144,6 +145,7 @@ class Timeline(object):
         self.widget = treeview
         self.api = api
         self.model = self._generateModel()
+        self.users = set()
 
     def start(self):
         self.widget.set_model(self.model)
@@ -173,6 +175,7 @@ class Timeline(object):
                             continue
 
                     who = status['user']['screen_name']
+                    self.users.add(who)
                     when = status['created_at']
                     img_url = status['user']['profile_image_url']
 
@@ -249,7 +252,27 @@ class Tweep(object):
                 self.statusbar = 'Updating...'
                 self.statusentry = ''
                 self.api.update(status, callback=self._status_complete)
-
+    
+    def status_autocomplete(self, widget, event, **kwargs):
+        if not gtk.gdk.keyval_name(event.keyval) == 'Tab':
+            return False
+        status = widget.get_text()
+        parts = status.split(' ')
+        if not parts:
+            return False
+        
+        last = parts[-1].replace('@', '')
+        if not last:
+            return False
+        for timeline in self.timelines:
+            for user in timeline.users:
+                if user.startswith(last):
+                    parts[-1] = '@%s' % user
+                    text = ' '.join(parts) 
+                    widget.set_text(text)
+                    widget.set_position(len(text))
+                    return True
+    
     def show_about(self, widget, **kwargs):
         dialog = self.widget_tree.get_widget('TweepyAboutDialog')
         if dialog:
@@ -285,22 +308,26 @@ class Tweep(object):
 
     def __init__(self, user, password, searches):
         self.api = TwitterApi(user, password)
+        self.timelines = []
 
         self.widget_tree = gtk.glade.XML('tweepydeck.glade')
         self.window = self.widget_tree.get_widget('TweepyMainWindow')
         self.window.connect('destroy', self.destroy)
 
         self.friends = Timeline(self.widget_tree.get_widget('FriendsTreeView'), self.api)
+        self.timelines.append(self.friends)
         self.replies = RepliesTimeline(self.widget_tree.get_widget('RepliesTreeView'), 
                         self.api)
+        self.timelines.append(self.replies)
     
-        self.friends.start()
-        self.replies.start()
+        for t in self.timelines:
+            t.start()
 
         self._events = {
                 'on_QuitMenuItem_activate' : self.destroy,
                 'on_AboutMenuItem_activate' : self.show_about,
                 'on_StatusEntry_key_release_event' : self.status_key,
+                'on_StatusEntry_key_press_event' : self.status_autocomplete,
             }
         self.widget_tree.signal_autoconnect(self._events)
 
