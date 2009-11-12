@@ -80,6 +80,9 @@ class TwitterApi(object):
         try:
             response = connection.getresponse()
             return json.loads(response.read())
+        except Exception, ex:
+            logging.error(ex)
+            return []
         finally:
             connection.close()
 
