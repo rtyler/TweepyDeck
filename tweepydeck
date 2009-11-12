@@ -224,17 +224,27 @@ class Timeline(object):
     def _markupStatus(self, status):
         status = status.replace('\n', ' ').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
         pieces = status.split(' ')
-        rc = []
-        for piece in pieces:
-            if piece.startswith('@'):
-                rc.append('<b>%s</b>' % piece)
-            elif piece.startswith('http://'):
-                rc.append('<span foreground="blue"><b>%s</b></span>' % piece)
-            elif piece.startswith('#'):
-                rc.append('<span foreground="#FF7F00"><b>%s</b></span>' % piece)
-            else:
-                rc.append(piece)
-        return ' '.join(rc)
+        def markup():
+            for piece in pieces:
+                if not piece:
+                    continue
+                if piece.startswith('@'):
+                    yield '<b>%s</b>' % piece
+                elif piece.startswith('http://'):
+                    yield '<span foreground="blue"><b>%s</b></span>' % piece
+                elif piece.startswith('#'):
+                    yield '<span foreground="#FF7F00"><b>%s</b></span>' % piece
+                elif len(piece) > 2:
+                    if piece[0] == '_' and piece[-1] == '_':
+                        yield '<i>%s</i>' % piece[1:-1]
+                    elif piece[0] == '*' and piece[-1] == '*':
+                        yield '<b>%s</b>' % piece[1:-1]
+                    else:
+                        yield piece
+                else:
+                    yield piece
+
+        return ' '.join(markup())
 
 class RepliesTimeline(Timeline):
     timeline = 'mentions.json'
