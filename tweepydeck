@@ -90,11 +90,11 @@ class TwitterApi(object):
             connection.close()
 
     @threaded
-    def timeline(self, since_id=None, count=DEFAULT_FETCH, callback=None, loadImages=True):
+    def timeline(self, timeline='friends_timeline.json', since_id=None, count=DEFAULT_FETCH, callback=None, loadImages=True):
         args = {'count' : count}
         if since_id:
             args['since_id'] = since_id
-        data = self._fetch('/statuses/friends_timeline.json?%s' % urllib.urlencode(args))
+        data = self._fetch('/statuses/%s?%s' % (timeline, urllib.urlencode(args)))
         if loadImages:
             for status in data:
                 try:
@@ -129,7 +129,109 @@ class TwitterApi(object):
         finally:
             connection.close()
 
+class Timeline(object):
+    widget = None
+    api = None
+    model = None
+    timer = None
+    since_id = None
+    timeline = 'friends_timeline.json'
 
+    def __init__(self, treeview, api, **kwargs):
+        self.__dict__.update(kwargs)
+
+        assert treeview, ('Need a widget', treeview)
+        self.widget = treeview
+        self.api = api
+        self.model = self._generateModel()
+
+    def start(self):
+        self.widget.set_model(self.model)
+        self._createListView()
+
+        self.timer = threading.Timer(1, self._timerCallback)
+        self.timer.start()
+
+    def _timerCallback(self, **kwargs):
+        self.api.timeline(timeline=self.timeline, since_id=self.since_id, 
+                        callback=self._timerUpdatedCallback)
+        return False
+
+    def _timerUpdatedCallback(self, data, **kwargs):
+        try:
+            if data:
+                logging.debug('_updateFriendsTimeline, # items: %s' % len(data))
+                self.since_id = data[0]['id']
+                data.reverse()
+                for i, status in enumerate(data):
+                    what = status['text']
+                    
+                    # *Very* crude dupe checking
+                    if i > 0:
+                        prev = data[i-1]
+                        if prev['text'] == what:
+                            continue
+
+                    who = status['user']['screen_name']
+                    when = status['created_at']
+                    img_url = status['user']['profile_image_url']
+
+                    image = None
+                    try:
+                        image = gtk.gdk.pixbuf_new_from_file_at_size(
+                                    saveImageToFile(who, img_url), 50, 50)
+                    except Exception, ex:
+                        logging.error('Failed to laod image: %s' % ex)
+                        if os.path.exists(cachedImagePath(who)):
+                            # Prune the dead image file if it's there
+                            os.unlink(cachedImagePath(who))
+                    
+                    # Mark it up
+                    who = '<b>%s</b>' % who
+                    what = self._markupStatus(what)
+
+                    self.model.insert(0, (image, who, what, when))
+                    self.widget.scroll_to_point(-1, 1)
+        finally:
+            gobject.timeout_add_seconds(INTERVAL, self._timerCallback)
+
+    def _generateModel(self):
+        return gtk.ListStore(gtk.gdk.Pixbuf, str, str, str)
+
+    def _addColumn(self, widget, column):
+        column.set_resizable(True)      
+        widget.append_column(column)
+
+    def _createListView(self):
+        column = gtk.TreeViewColumn('', gtk.CellRendererPixbuf(), pixbuf=0)
+        self._addColumn(self.widget, column)
+
+        cell = gtk.CellRendererText()
+        cell.set_property('wrap-mode', pango.WRAP_WORD)
+        column = gtk.TreeViewColumn('Who', cell, markup=1)
+        self._addColumn(self.widget, column)
+
+        column = gtk.TreeViewColumn('What', gtk.CellRendererText(), markup=2)
+        self._addColumn(self.widget, column)
+
+        column = gtk.TreeViewColumn('When', gtk.CellRendererText(), text=3)
+        self._addColumn(self.widget, column)
+
+    def _markupStatus(self, status):
+        status = status.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        pieces = status.split(' ')
+        rc = []
+        for piece in pieces:
+            if piece.startswith('@'):
+                rc.append('<b>%s</b>' % piece)
+            elif piece.startswith('http://'):
+                rc.append('<span foreground="blue"><b>%s</b></span>' % piece)
+            else:
+                rc.append(piece)
+        return ' '.join(rc)
+
+class RepliesTimeline(Timeline):
+    timeline = 'mentions.json'
 
 class Tweep(object):
     widget_tree = None
@@ -181,81 +283,6 @@ class Tweep(object):
     def _status_complete(self, data, **kwargs):
         self.statusbar = 'Status last updated at %s' % readable_time()
 
-    def _addColumn(self, widget, column):
-        column.set_resizable(True)      
-        widget.append_column(column)
-
-    def _createListView(self):
-        column = gtk.TreeViewColumn('', gtk.CellRendererPixbuf(), pixbuf=0)
-        self._addColumn(self.friendsTimeline, column)
-
-        cell = gtk.CellRendererText()
-        cell.set_property('wrap-mode', pango.WRAP_WORD)
-        column = gtk.TreeViewColumn('Who', cell, markup=1)
-        self._addColumn(self.friendsTimeline, column)
-
-        column = gtk.TreeViewColumn('What', gtk.CellRendererText(), markup=2)
-        self._addColumn(self.friendsTimeline, column)
-
-        column = gtk.TreeViewColumn('When', gtk.CellRendererText(), text=3)
-        self._addColumn(self.friendsTimeline, column)
-
-
-    def _markupStatus(self, status):
-        status = status.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-        pieces = status.split(' ')
-        rc = []
-        for piece in pieces:
-            if piece.startswith('@'):
-                rc.append('<b>%s</b>' % piece)
-            elif piece.startswith('http://'):
-                rc.append('<span foreground="blue"><b>%s</b></span>' % piece)
-            else:
-                rc.append(piece)
-        return ' '.join(rc)
-
-    def _updateFriendsTimeline(self, data, **kwargs):
-        try:
-            if data:
-                logging.debug('_updateFriendsTimeline, # items: %s' % len(data))
-                self.since_id = data[0]['id']
-                data.reverse()
-                for i, status in enumerate(data):
-                    what = status['text']
-                    
-                    # *Very* crude dupe checking
-                    if i > 0:
-                        prev = data[i-1]
-                        if prev['text'] == what:
-                            continue
-
-                    who = status['user']['screen_name']
-                    when = status['created_at']
-                    img_url = status['user']['profile_image_url']
-
-                    image = None
-                    try:
-                        image = gtk.gdk.pixbuf_new_from_file_at_size(
-                                    saveImageToFile(who, img_url), 50, 50)
-                    except Exception, ex:
-                        logging.error('Failed to laod image: %s' % ex)
-                        if os.path.exists(cachedImagePath(who)):
-                            # Prune the dead image file if it's there
-                            os.unlink(cachedImagePath(who))
-                    
-                    # Mark it up
-                    who = '<b>%s</b>' % who
-                    what = self._markupStatus(what)
-
-                    self.friendsTimelineModel.insert(0, (image, who, what, when))
-                    self.friendsTimeline.scroll_to_point(-1, 1)
-        finally:
-            gobject.timeout_add_seconds(INTERVAL, self._friendsTimer)
-
-    def _friendsTimer(self):
-        self.api.timeline(since_id=self.since_id, callback=self._updateFriendsTimeline)
-        return False
-
     def __init__(self, user, password, searches):
         self.api = TwitterApi(user, password)
 
@@ -263,14 +290,12 @@ class Tweep(object):
         self.window = self.widget_tree.get_widget('TweepyMainWindow')
         self.window.connect('destroy', self.destroy)
 
-        self.friendsTimeline = self.widget_tree.get_widget('FriendsTreeView')
-        self.friendsTimelineModel = gtk.ListStore(gtk.gdk.Pixbuf, str, str, str)
-        self.friendsTimeline.set_model(self.friendsTimelineModel)
-        self._createListView()
-
-        self.friendsTimer = threading.Timer(1, self._friendsTimer)
-        self.friendsTimer.start()
-
+        self.friends = Timeline(self.widget_tree.get_widget('FriendsTreeView'), self.api)
+        self.replies = RepliesTimeline(self.widget_tree.get_widget('RepliesTreeView'), 
+                        self.api)
+    
+        self.friends.start()
+        self.replies.start()
 
         self._events = {
                 'on_QuitMenuItem_activate' : self.destroy,
