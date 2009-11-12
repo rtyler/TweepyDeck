@@ -230,9 +230,13 @@ class Tweep(object):
                     when = status['created_at']
                     img_url = status['user']['profile_image_url']
 
-                    image = gtk.gdk.pixbuf_new_from_file_at_size(
+                    image = None
+                    try:
+                        image = gtk.gdk.pixbuf_new_from_file_at_size(
                                     saveImageToFile(who, img_url), 50, 50)
-
+                    except Exception, ex:
+                        logging.error('Failed to laod image: %s' % ex)
+                    
                     # Mark it up
                     who = '<b>%s</b>' % who
                     what = self._markupStatus(what)
