@@ -273,13 +273,14 @@
   </widget>
   <widget class="GtkAboutDialog" id="TweepyAboutDialog">
     <property name="border_width">5</property>
+    <property name="window_position">center-on-parent</property>
+    <property name="icon_name">help-browser</property>
     <property name="type_hint">normal</property>
     <property name="copyright" translatable="yes">(c) 2009 R. Tyler Ballance</property>
     <property name="comments" translatable="yes">TweepyDeck is a PyGTK experiment</property>
     <property name="website">http://github.com/rtyler/TweepyDeck</property>
     <property name="website_label" translatable="yes">TweepyDeck on GitHub</property>
     <property name="authors">R. Tyler Ballance</property>
-    <property name="translator_credits" translatable="yes" comments="TRANSLATORS: Replace this string with your names, one name per line.">translator-credits</property>
     <child internal-child="vbox">
       <widget class="GtkVBox" id="dialog-vbox1">
         <child internal-child="action_area">
