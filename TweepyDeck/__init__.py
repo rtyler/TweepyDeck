@@ -394,7 +394,8 @@ class Tweep(object):
     def main(self):
         gtk.main()
 
-if __name__ == "__main__":
+
+def main():
     op = OptionParser()
     op.add_option('-u', '--user', dest='user', help='Your twitter username')
     op.add_option('-s', '--searches', default=None, dest='searches', 
@@ -409,4 +410,6 @@ if __name__ == "__main__":
 
     Tweep(opts.user, password, searches).main()
 
+if __name__ == "__main__":
+    main()
 # vim: shiftwidth=4 tabstop=4 expandtab
