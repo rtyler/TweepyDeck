@@ -5,7 +5,6 @@
 import getpass
 import logging
 import os.path
-import string
 import time
 from optparse import OptionParser
 
@@ -98,13 +97,15 @@ class Tweep(object):
     def _status_complete(self, data, **kwargs):
         self.statusbar = 'Status last updated at %s' % util.readable_time()
 
-    def __init__(self, user, password, searches):
-        self.api = twitter.TwitterApi(user, password)
-        self.timelines = []
+    def login(self, button, **kwargs):
+        dialog = self.widget_tree.get_widget('LoginDialog')
+        login_entry = self.widget_tree.get_widget('UsernameEntry')
+        pass_entry = self.widget_tree.get_widget('PasswordEntry')
 
-        self.widget_tree = gtk.glade.XML('tweepydeck.glade')
-        self.window = self.widget_tree.get_widget('TweepyMainWindow')
-        self.window.connect('destroy', self.destroy)
+        user, password = login_entry.get_text(), pass_entry.get_text()
+        
+        self.api = twitter.TwitterApi(user, password)
+
 
         self.friends = timeline.Timeline(self.widget_tree.get_widget('FriendsTreeView'), self.api)
         self.timelines.append(self.friends)
@@ -112,42 +113,45 @@ class Tweep(object):
                         self.api)
         self.timelines.append(self.replies)
 
-        if searches:
-            self.searches = timeline.SearchesTimeline(self.widget_tree.get_widget('SearchTreeView'), self.api, searches)
-            self.timelines.append(self.searches)
-        else:
-            self.widget_tree.get_widget('SearchScrolledWindow').destroy()
+        #if searches:
+        #    self.searches = timeline.SearchesTimeline(self.widget_tree.get_widget('SearchTreeView'), self.api, searches)
+        #    self.timelines.append(self.searches)
+        #else:
+        #    self.widget_tree.get_widget('SearchScrolledWindow').destroy()
+        self.widget_tree.get_widget('SearchScrolledWindow').hide()
     
         for t in self.timelines:
             t.start()
+
+        dialog.destroy()
+
+
+    def __init__(self, *args, **kwargs):
+        self.timelines = []
+        self.widget_tree = gtk.glade.XML('tweepydeck.glade')
+        self.window = self.widget_tree.get_widget('TweepyMainWindow')
+        self.window.connect('destroy', self.destroy)
 
         self._events = {
                 'on_QuitMenuItem_activate' : self.destroy,
                 'on_AboutMenuItem_activate' : self.show_about,
                 'on_StatusEntry_key_release_event' : self.status_key,
                 'on_StatusEntry_key_press_event' : self.status_autocomplete,
+                'on_LoginCancelButton_clicked' : self.destroy,
+                'on_LoginOkayButton_clicked' : self.login,
             }
         self.widget_tree.signal_autoconnect(self._events)
+
+
 
     def main(self):
         gtk.main()
 
 
 def main():
-    op = OptionParser()
-    op.add_option('-u', '--user', dest='user', help='Your twitter username')
-    op.add_option('-s', '--searches', default=None, dest='searches', 
-                    help='Comma-separated list of searches')
-    opts, args = op.parse_args()
-    if not opts.user:
-        op.print_help()
-        quit()
-
-    password = getpass.getpass('Twitter password for %s: ' % opts.user)
-    searches = opts.searches and opts.searches.split(',')
-
-    Tweep(opts.user, password, searches).main()
+    Tweep().main()
 
 if __name__ == "__main__":
     main()
+
 # vim: shiftwidth=4 tabstop=4 expandtab
