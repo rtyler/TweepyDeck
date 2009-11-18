@@ -69,7 +69,7 @@ class Tweep(object):
         dialog = self.widget_tree.get_widget('TweepyAboutDialog')
         if dialog:
             dialog.run()
-            dialog.destroy()
+            dialog.hide()
 
     @decorators.accessor
     def statusbar():
