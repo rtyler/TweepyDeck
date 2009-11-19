@@ -17,6 +17,7 @@ import gtk.gdk
 import gtk.glade
 
 # TweepyDeck imports
+from TweepyDeck import bases
 from TweepyDeck import decorators
 from TweepyDeck import timeline
 from TweepyDeck import twitter
@@ -31,6 +32,15 @@ class Tweep(object):
     widget_tree = None
     last_status = None
     since_id = None
+
+    # Timelines
+    friends = None
+    replies = None
+    searches = None
+
+    search_terms = None
+
+    
 
     def destroy(self, widget, data=None):
         gtk.main_quit()

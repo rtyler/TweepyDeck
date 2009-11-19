@@ -5,6 +5,7 @@
 import logging
 import os
 import threading
+import urllib
 
 
 # PyGTK imports
@@ -16,34 +17,29 @@ import gobject
 import pango
 
 # TweepyDeck imports
+from TweepyDeck import bases
 from TweepyDeck import util
 
 INTERVAL = 120
 
-class Timeline(object):
-    widget = None
+class Timeline(bases.BaseListView):
     api = None
-    model = None
-    timer = None
     since_id = None
     timeline = 'statuses/friends_timeline.json'
     users = None
 
     def __init__(self, treeview, api, **kwargs):
+        super(Timeline, self).__init__(treeview, **kwargs)
         self.__dict__.update(kwargs)
-
-        assert treeview, ('Need a widget', treeview)
-        self.widget = treeview
         self.api = api
-        self.model = self._generateModel()
         self.users = set()
 
     def start(self):
-        self.widget.set_model(self.model)
-        self._createListView()
+        self.initializeList()
+        self.reset_timer()
 
-        self.timer = threading.Timer(1, self._timerCallback)
-        self.timer.start()
+    def reset_timer(self):
+        gobject.timeout_add_seconds(1, self._timerCallback)
 
     def _timerCallback(self, **kwargs):
         self.api.timeline(timeline=self.timeline, since_id=self.since_id, 
@@ -93,11 +89,7 @@ class Timeline(object):
     def _generateModel(self):
         return gtk.ListStore(gtk.gdk.Pixbuf, str, str)
 
-    def _addColumn(self, widget, column):
-        column.set_resizable(True)      
-        widget.append_column(column)
-
-    def _createListView(self):
+    def initializeList(self):
         column = gtk.TreeViewColumn('', gtk.CellRendererPixbuf(), pixbuf=0)
         column.set_min_width(50)
         self._addColumn(self.widget, column)
@@ -148,12 +140,14 @@ class SearchesTimeline(Timeline):
 
     def __init__(self, widget, api, searches, **kwargs):
         super(SearchesTimeline, self).__init__(widget, api, **kwargs)
-        self.searches = searches
+        self.searches = searches or []
 
     def _grabNecessities(self, status):
         return status['from_user'], status['created_at'], status['profile_image_url']
 
     def _timerCallback(self, **kwargs):
+        if not self.searches:
+            return False
         args = {'q' : ' OR '.join(self.searches)}
         timeline = '%s?%s' % (self.timeline, urllib.urlencode(args))
         self.api.timeline(timeline=timeline, since_id=self.since_id, 
