@@ -123,24 +123,59 @@ class Tweep(object):
                         self.api)
         self.timelines.append(self.replies)
 
-        #if searches:
-        #    self.searches = timeline.SearchesTimeline(self.widget_tree.get_widget('SearchTreeView'), self.api, searches)
-        #    self.timelines.append(self.searches)
-        #else:
-        #    self.widget_tree.get_widget('SearchScrolledWindow').destroy()
-        self.widget_tree.get_widget('SearchScrolledWindow').hide()
-    
+        #self.widget_tree.get_widget('SearchScrolledWindow').hide()
+
         for t in self.timelines:
             t.start()
 
         dialog.destroy()
 
+    def prompt_searches(self, button, **kwargs):
+        window = self.widget_tree.get_widget('SearchesWindow')
+        if not self.search_terms:
+            self.search_terms = SearchItemsList(self.widget_tree.get_widget('SearchItemsTreeView'))
+            self.search_terms.initializeList()
+        window.show()
+
+    def close_searches(self, button, **kwargs):
+        window = self.widget_tree.get_widget('SearchesWindow')
+        window.hide()
+
+    def _updateSearchTimeline(self, searches=None):
+        if self.searches:
+            if searches:
+                self.searches.since_id = None
+                self.searches.model.clear()
+                self.searches.searches = searches
+                self.searches.reset_timer()
+            return
+        view = self.widget_tree.get_widget('SearchTreeView')
+        self.searches = timeline.SearchesTimeline(view, self.api, searches)
+        self.timelines.append(self.searches)
+        self.searches.start()
+        view.show()
+
+    def search_add(self, button, **kwargs):
+        entry = self.widget_tree.get_widget('SearchTermEntry')
+        term = entry.get_text()
+        if not term:
+            return
+        for t in self.search_terms.model:
+            if t and t[0] == term:
+                return
+        entry.set_text('')
+        self.search_terms.model.append((term,))
+        self._updateSearchTimeline([s[0] for s in self.search_terms.model])
+
+    def search_remove(self, button, **kwargs):
+        print ('search_remove', locals())
 
     def __init__(self, *args, **kwargs):
         self.timelines = []
         self.widget_tree = gtk.glade.XML('tweepydeck.glade')
         self.window = self.widget_tree.get_widget('TweepyMainWindow')
         self.window.connect('destroy', self.destroy)
+        self.widget_tree.get_widget('StatusProgressBar').pulse()
 
         self._events = {
                 'on_QuitMenuItem_activate' : self.destroy,
@@ -149,13 +184,24 @@ class Tweep(object):
                 'on_StatusEntry_key_press_event' : self.status_autocomplete,
                 'on_LoginCancelButton_clicked' : self.destroy,
                 'on_LoginOkayButton_clicked' : self.login,
+                'on_ToolbarSearchButton_clicked' : self.prompt_searches,
+                'on_SearchWindowCloseButton_clicked' : self.close_searches,
+                'on_SearchItemAddButton_clicked' : self.search_add,
+                'on_SearchItemRemoveButton_clicked' : self.search_remove,
             }
         self.widget_tree.signal_autoconnect(self._events)
 
 
-
     def main(self):
         gtk.main()
+
+class SearchItemsList(bases.BaseListView):
+    def _generateModel(self):
+        return gtk.ListStore(str)
+
+    def initializeList(self):
+        column = gtk.TreeViewColumn('', gtk.CellRendererText(), text=0)
+        self._addColumn(self.widget, column)
 
 
 def main():
