@@ -25,7 +25,7 @@ INTERVAL = 120
 class Timeline(bases.BaseChildWidget):
     api = None
     since_id = None
-    timeline = 'statuses/friends_timeline.json'
+    timeline = 'statuses/home_timeline.json'
     users = None
     rows = None
     rendered = False
@@ -52,8 +52,6 @@ class Timeline(bases.BaseChildWidget):
     def _grabNecessities(self, status):
         return status['user']['screen_name'], status['created_at'], status['user']['profile_image_url']
 
-
-
     def renderTo(self, parent, start=False):
         self.scrolled_window = gtk.ScrolledWindow()
         self.scrolled_window.show()
@@ -67,7 +65,6 @@ class Timeline(bases.BaseChildWidget):
         self.timeline_widget.show()
         self.timeline_widget.set_homogeneous(False)
         self.viewport.add(self.timeline_widget)
-
 
     def _timerUpdatedCallback(self, data, **kwargs):
         if not self.rendered:
