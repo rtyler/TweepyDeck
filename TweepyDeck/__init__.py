@@ -122,45 +122,25 @@ class Tweep(object):
 
         dialog.destroy()
 
-    def prompt_searches(self, button, **kwargs):
-        window = self.widget_tree.get_widget('SearchesWindow')
-        if not self.search_terms:
-            self.search_terms = SearchItemsList(self.widget_tree.get_widget('SearchItemsTreeView'))
-            self.search_terms.initializeList()
-        window.show()
+    def prompt_search(self, *args, **kwargs):
+        self.widget_tree.get_widget('SearchTermEntry').set_text('')
+        self.widget_tree.get_widget('SearchDialog').show()
 
-    def close_searches(self, button, **kwargs):
-        self._updateSearchTimeline([s[0] for s in self.search_terms.model])
-        window = self.widget_tree.get_widget('SearchesWindow')
-        window.hide()
+    def search_cancel(self, *args, **kwargs):
+        self.widget_tree.get_widget('SearchDialog').hide()
 
-    def _updateSearchTimeline(self, searches=None):
-        if self.searches:
-            if searches:
-                self.searches.since_id = None
-                self.searches.model.clear()
-                self.searches.searches = searches
-                self.searches.reset_timer()
-            return
-        view = self.widget_tree.get_widget('SearchTreeView')
-        self.searches = timeline.SearchesTimeline(view, self.api, searches)
-        self.timelines.append(self.searches)
-        self.searches.start()
-        view.show()
-
-    def search_add(self, button, **kwargs):
+    def search_okay(self, *args, **kwargs):
         entry = self.widget_tree.get_widget('SearchTermEntry')
         term = entry.get_text()
         if not term:
             return
-        for t in self.search_terms.model:
-            if t and t[0] == term:
-                return
-        entry.set_text('')
-        self.search_terms.model.append((term,))
 
-    def search_remove(self, button, **kwargs):
-        print ('search_remove', locals())
+        search = timeline.SearchesTimeline(self.api, 
+                        parent=self.widget_tree.get_widget('DeckHBox'),
+                        term=term)
+        self.timelines.append(search)
+        search.start()
+        self.widget_tree.get_widget('SearchDialog').hide()
 
     def toggle_replies(self, button, **kwargs):
         if button.get_active():
@@ -186,12 +166,15 @@ class Tweep(object):
                 'on_AboutMenuItem_activate' : self.show_about,
                 'on_StatusEntry_key_release_event' : self.status_key,
                 'on_StatusEntry_key_press_event' : self.status_autocomplete,
+
+                # Dialogs
                 'on_LoginCancelButton_clicked' : self.destroy,
                 'on_LoginOkayButton_clicked' : self.login,
-                'on_ToolbarSearchButton_clicked' : self.prompt_searches,
-                'on_SearchWindowCloseButton_clicked' : self.close_searches,
-                'on_SearchItemAddButton_clicked' : self.search_add,
-                'on_SearchItemRemoveButton_clicked' : self.search_remove,
+                'on_SearchDialogOkay_clicked' : self.search_okay,
+                'on_SearchDialogCancel_clicked' : self.search_cancel,
+
+                # Toolbar
+                'on_ToolbarSearchButton_clicked' : self.prompt_search,
                 'on_RepliesToggle_toggled' : self.toggle_replies,
                 'on_FollowersToggle_toggled' : self.toggle_followers,
 
@@ -201,14 +184,6 @@ class Tweep(object):
 
     def main(self):
         gtk.main()
-
-class SearchItemsList(bases.BaseListView):
-    def _generateModel(self):
-        return gtk.ListStore(str)
-
-    def initializeList(self):
-        column = gtk.TreeViewColumn('', gtk.CellRendererText(), text=0)
-        self._addColumn(self.widget, column)
 
 
 def main():

@@ -72,6 +72,7 @@ class Timeline(bases.BaseChildWidget):
     def _timerUpdatedCallback(self, data, **kwargs):
         if not self.rendered:
             self.renderTo(self.parent)
+            self.rendered = True
 
         odd = True
         try:
@@ -105,20 +106,16 @@ class RepliesTimeline(Timeline):
 
 class SearchesTimeline(Timeline):
     timeline = 'search.json'
-    searches = None
+    term = None
     count = 30
-
-    def __init__(self, widget, api, searches, **kwargs):
-        super(SearchesTimeline, self).__init__(widget, api, **kwargs)
-        self.searches = searches or []
 
     def _grabNecessities(self, status):
         return status['from_user'], status['created_at'], status['profile_image_url']
 
     def _timerCallback(self, **kwargs):
-        if not self.searches:
+        if not self.term:
             return False
-        args = {'q' : ' OR '.join(self.searches)}
+        args = {'q' : self.term}
         timeline = '%s?%s' % (self.timeline, urllib.urlencode(args))
         self.api.timeline(timeline=timeline, since_id=self.since_id, 
                         callback=self._timerUpdatedCallback, count=self.count)
