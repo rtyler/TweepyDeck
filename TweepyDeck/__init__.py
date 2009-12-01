@@ -189,8 +189,9 @@ class Tweep(object):
 
 
 def main():
-    util.registry['app'] = Tweep()
-    util.registry['app'].main()
+    app = Tweep()
+    util.set_global('app', app)
+    app.main()
 
 if __name__ == "__main__":
     main()

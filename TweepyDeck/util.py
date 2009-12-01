@@ -1,10 +1,18 @@
 #!/usr/bin/env python
 
 import os
+import sys
 import time
 import urllib2
 
-registry = {}
+
+def __global_prefix(key):
+    return '_TweepyDeck_%s' % key
+
+def set_global(key, value):
+    setattr(sys, __global_prefix(key), value)
+def get_global(key):
+    return getattr(sys, __global_prefix(key), None)
 
 def readable_time():
     return time.strftime('%H:%M:%S', time.localtime())

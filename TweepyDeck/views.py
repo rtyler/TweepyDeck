@@ -18,10 +18,10 @@ from TweepyDeck import util
 views = []
 util.set_global('views', views)
 
-class BasicRow(bases.BaseChildWidget):
+class AbstractRow(bases.BaseChildWidget):
     @classmethod
     def matchForText(cls, text):
-        return True
+        return False
 
     @classmethod
     def rowForText(cls, text):
@@ -31,10 +31,21 @@ class BasicRow(bases.BaseChildWidget):
         what = text['text']
         return cls(**locals())
 
-    def _buildContainer(self):
+    def clickedLink(self, label, uri, data, **kwargs):
+        if not uri.startswith('tweepy://'):
+            return False
+
+        command = uri[9:]
+        command, arg = command.split('/')
+        if command == 'search':
+            util.get_global('app')._spawnSearch('#%s' % arg)
+        return True
+
+    def _renderContainer(self):
         container = gtk.HBox()
         container.set_size_request(350, -1)
         container.set_homogeneous(False)
+        container.show()
         return container
 
     def _renderAvatar(self, container):
@@ -57,23 +68,24 @@ class BasicRow(bases.BaseChildWidget):
 
         container.pack_start(vbox, expand=False, fill=False, padding=3)
 
-    def clickedLink(self, label, uri, data, **kwargs):
-        if not uri.startswith('tweepy://'):
-            return False
+    def renderTo(self, parent, start=False):
+        container = self._renderContainer()
 
-        command = uri[9:]
-        command, arg = command.split('/')
-        if command == 'search':
-            util.registry['app']._spawnSearch('#%s' % arg)
+        self._render(container)
+
+        _method = parent.pack_start
+        if not start:
+            _method = parent.pack_end
+        _method(container)
+
+
+
+class BasicRow(AbstractRow):
+    @classmethod
+    def matchForText(cls, text):
         return True
 
-    def renderTo(self, parent, start=False):
-        to_show = []
-        container = self._buildContainer()
-        to_show.append(container)
-
-        self._renderAvatar(container)
-
+    def _renderStatus(self, container):
         what = gtk.Label()
         self.what = self._markupStatus(self.what)
         what.set_markup('%s    <i><span size="x-small" weight="light">%s</span></i>' % (
@@ -83,17 +95,13 @@ class BasicRow(bases.BaseChildWidget):
         what.set_line_wrap(True)
         what.set_selectable(True)
         what.set_alignment(0.0, 0.0)
-        to_show.append(what)
-
+        what.show()
         container.pack_start(what, expand=True, fill=True)
 
-        for s in to_show:
-            s.show()
+    def _render(self, container):
+        self._renderAvatar(container)
+        self._renderStatus(container)
 
-        _method = parent.pack_start
-        if not start:
-            _method = parent.pack_end
-        _method(container)
 
     def _markupStatus(self, status):
         status = status.replace('\n', ' ').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
