@@ -128,4 +128,22 @@ class BasicRow(AbstractRow):
 
         return ' '.join(markup())
 
-views.append(BasicRow)
+views.insert(0, BasicRow)
+
+class SearchRow(BasicRow):
+    @classmethod
+    def matchForText(cls, text):
+        if text.get('from_user'):
+            return True
+        return False
+
+    @classmethod
+    def rowForText(cls, text):
+        who = text['from_user']
+        when = text['created_at']
+        image = util.saveImageToFile(who, text['profile_image_url'])
+        what = text['text']
+        return cls(**locals())
+
+views.insert(0, SearchRow)
+

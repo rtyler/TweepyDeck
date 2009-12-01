@@ -92,6 +92,7 @@ class Timeline(bases.BaseChildWidget):
                         if not view.matchForText(status):
                             continue
                         renderer = view
+                        break
 
                     logging.debug('rendering %s with %s' % (status['id'], renderer))
 
