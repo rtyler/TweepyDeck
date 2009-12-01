@@ -170,13 +170,18 @@
                 <property name="vscrollbar_policy">automatic</property>
                 <property name="shadow_type">in</property>
                 <child>
-                  <widget class="GtkTreeView" id="FriendsTreeView">
+                  <widget class="GtkViewport" id="FriendsViewport">
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="reorderable">True</property>
-                    <property name="rules_hint">True</property>
-                    <property name="enable_search">False</property>
-                    <property name="hover_expand">True</property>
+                    <property name="resize_mode">queue</property>
+                    <child>
+                      <widget class="GtkVBox" id="FriendsVBox">
+                        <property name="visible">True</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <placeholder/>
+                        </child>
+                      </widget>
+                    </child>
                   </widget>
                 </child>
               </widget>
@@ -192,14 +197,18 @@
                 <property name="vscrollbar_policy">automatic</property>
                 <property name="shadow_type">in</property>
                 <child>
-                  <widget class="GtkTreeView" id="RepliesTreeView">
+                  <widget class="GtkViewport" id="RepliesViewport">
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="reorderable">True</property>
-                    <property name="rules_hint">True</property>
-                    <property name="enable_search">False</property>
-                    <property name="hover_expand">True</property>
-                    <signal name="check_resize" handler="on_RepliesTreeView_check_resize"/>
+                    <property name="resize_mode">queue</property>
+                    <child>
+                      <widget class="GtkVBox" id="RepliesVBox">
+                        <property name="visible">True</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <placeholder/>
+                        </child>
+                      </widget>
+                    </child>
                   </widget>
                 </child>
               </widget>
@@ -214,13 +223,18 @@
                 <property name="hscrollbar_policy">never</property>
                 <property name="shadow_type">in</property>
                 <child>
-                  <widget class="GtkTreeView" id="SearchTreeView">
+                  <widget class="GtkViewport" id="SearchViewport">
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="reorderable">True</property>
-                    <property name="rules_hint">True</property>
-                    <property name="enable_search">False</property>
-                    <property name="hover_expand">True</property>
+                    <property name="resize_mode">queue</property>
+                    <child>
+                      <widget class="GtkVBox" id="SearchVBox">
+                        <property name="visible">True</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <placeholder/>
+                        </child>
+                      </widget>
+                    </child>
                   </widget>
                 </child>
               </widget>
