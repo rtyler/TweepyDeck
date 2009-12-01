@@ -138,6 +138,7 @@ class Tweep(object):
         window.show()
 
     def close_searches(self, button, **kwargs):
+        self._updateSearchTimeline([s[0] for s in self.search_terms.model])
         window = self.widget_tree.get_widget('SearchesWindow')
         window.hide()
 
@@ -165,7 +166,6 @@ class Tweep(object):
                 return
         entry.set_text('')
         self.search_terms.model.append((term,))
-        self._updateSearchTimeline([s[0] for s in self.search_terms.model])
 
     def search_remove(self, button, **kwargs):
         print ('search_remove', locals())
