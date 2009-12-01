@@ -66,27 +66,29 @@ class TwitterApi(object):
         sep = '?'
         if timeline.find('?') >= 0:
             sep = '&'
-        data = self._fetch('/%s%s%s' % (timeline, sep, urllib.urlencode(args)))
-        if loadImages:
-            if search:
-                data = data['results']
-            for status in data:
-                who, img = None, None
-                if not search:
-                    who = status['user']['screen_name']
-                    img = status['user']['profile_image_url']
-                else:
-                    who = status['from_user']
-                    img = status['profile_image_url']
+        data = None
+        try:
+            data = self._fetch('/%s%s%s' % (timeline, sep, urllib.urlencode(args)))
+            if loadImages:
+                if search:
+                    data = data['results']
+                for status in data:
+                    who, img = None, None
+                    if not search:
+                        who = status['user']['screen_name']
+                        img = status['user']['profile_image_url']
+                    else:
+                        who = status['from_user']
+                        img = status['profile_image_url']
 
-                try:
-                    util.saveImageToFile(who, img)
-                except Exception, ex:
-                    logging.error('Downloading failed: %s %s' % (status, ex))
-
-        if not callback:
-            return data
-        gobject.idle_add(callback, data) 
+                    try:
+                        util.saveImageToFile(who, img)
+                    except Exception, ex:
+                        logging.error('Downloading failed: %s %s' % (status, ex))
+        finally:
+            if not callback:
+                return data
+            gobject.idle_add(callback, data) 
 
     @decorators.threaded
     def update(self, status, in_reply_to=None, callback=None):
