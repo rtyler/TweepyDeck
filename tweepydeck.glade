@@ -145,6 +145,32 @@
                     <property name="homogeneous">True</property>
                   </packing>
                 </child>
+                <child>
+                  <widget class="GtkToggleToolButton" id="RepliesToggle">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">Replies</property>
+                    <property name="use_underline">True</property>
+                    <property name="stock_id">gtk-redo</property>
+                    <signal name="toggled" handler="on_RepliesToggle_toggled"/>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkToggleToolButton" id="FollowersToggle">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">Followers</property>
+                    <property name="use_underline">True</property>
+                    <property name="stock_id">gtk-index</property>
+                    <signal name="toggled" handler="on_FollowersToggle_toggled"/>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -160,87 +186,24 @@
           </packing>
         </child>
         <child>
-          <widget class="GtkHBox" id="DeckHBox">
+          <widget class="GtkScrolledWindow" id="DeckScrolledWindow">
             <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="hscrollbar_policy">automatic</property>
+            <property name="vscrollbar_policy">automatic</property>
             <child>
-              <widget class="GtkScrolledWindow" id="FriendsScrolledWindow">
+              <widget class="GtkViewport" id="DeckViewport">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="hscrollbar_policy">never</property>
-                <property name="vscrollbar_policy">automatic</property>
-                <property name="shadow_type">in</property>
+                <property name="resize_mode">queue</property>
                 <child>
-                  <widget class="GtkViewport" id="FriendsViewport">
+                  <widget class="GtkHBox" id="DeckHBox">
                     <property name="visible">True</property>
-                    <property name="resize_mode">queue</property>
                     <child>
-                      <widget class="GtkVBox" id="FriendsVBox">
-                        <property name="visible">True</property>
-                        <property name="orientation">vertical</property>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </widget>
+                      <placeholder/>
                     </child>
                   </widget>
                 </child>
               </widget>
-              <packing>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkScrolledWindow" id="RepliesScrolledWindow">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="hscrollbar_policy">never</property>
-                <property name="vscrollbar_policy">automatic</property>
-                <property name="shadow_type">in</property>
-                <child>
-                  <widget class="GtkViewport" id="RepliesViewport">
-                    <property name="visible">True</property>
-                    <property name="resize_mode">queue</property>
-                    <child>
-                      <widget class="GtkVBox" id="RepliesVBox">
-                        <property name="visible">True</property>
-                        <property name="orientation">vertical</property>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </widget>
-                    </child>
-                  </widget>
-                </child>
-              </widget>
-              <packing>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkScrolledWindow" id="SearchScrolledWindow">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="hscrollbar_policy">never</property>
-                <property name="shadow_type">in</property>
-                <child>
-                  <widget class="GtkViewport" id="SearchViewport">
-                    <property name="visible">True</property>
-                    <property name="resize_mode">queue</property>
-                    <child>
-                      <widget class="GtkVBox" id="SearchVBox">
-                        <property name="visible">True</property>
-                        <property name="orientation">vertical</property>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </widget>
-                    </child>
-                  </widget>
-                </child>
-              </widget>
-              <packing>
-                <property name="position">2</property>
-              </packing>
             </child>
           </widget>
           <packing>

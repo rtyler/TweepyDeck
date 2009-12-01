@@ -22,20 +22,23 @@ from TweepyDeck import util
 
 INTERVAL = 120
 
-class Timeline(bases.BaseListView):
+class Timeline(bases.BaseChildWidget):
     api = None
     since_id = None
     timeline = 'statuses/friends_timeline.json'
     users = None
+    rows = None
+    rendered = False
+    parent = None
+    timeline_widget = None
 
-    def __init__(self, treeview, api, **kwargs):
-        super(Timeline, self).__init__(treeview, **kwargs)
-        self.__dict__.update(kwargs)
+    def __init__(self, api, **kwargs):
+        super(Timeline, self).__init__(**kwargs)
         self.api = api
         self.users = set()
+        self.rows = []
 
     def start(self):
-        self.initializeList()
         self.reset_timer()
 
     def reset_timer(self):
@@ -50,7 +53,27 @@ class Timeline(bases.BaseListView):
         return status['user']['screen_name'], status['created_at'], status['user']['profile_image_url']
 
 
+
+    def renderTo(self, parent, start=False):
+        self.scrolled_window = gtk.ScrolledWindow()
+        self.scrolled_window.show()
+        parent.pack_start(self.scrolled_window)
+
+        self.viewport = gtk.Viewport()
+        self.viewport.show()
+        self.scrolled_window.add(self.viewport)
+
+        self.timeline_widget = gtk.VBox()
+        self.timeline_widget.show()
+        self.timeline_widget.set_homogeneous(False)
+        self.viewport.add(self.timeline_widget)
+
+
     def _timerUpdatedCallback(self, data, **kwargs):
+        if not self.rendered:
+            self.renderTo(self.parent)
+
+        odd = True
         try:
             if data:
                 logging.debug('_timerUpdatedCallback [%s], # items: %s' % (self.timeline, len(data)))
@@ -66,69 +89,16 @@ class Timeline(bases.BaseListView):
                             continue
 
                     who, when, img_url = self._grabNecessities(status)
+                    image = util.saveImageToFile(who, img_url)
                     self.users.add(who)
-                    image = None
-                    try:
-                        image = gtk.gdk.pixbuf_new_from_file_at_size(
-                                    util.saveImageToFile(who, img_url), 50, 50)
-                    except Exception, ex:
-                        logging.error('Failed to laod image: %s' % ex)
-                        if os.path.exists(util.cachedImagePath(who)):
-                            # Prune the dead image file if it's there
-                            os.unlink(util.cachedImagePath(who))
-                    
-                    # Mark it up
-                    who = '<b>%s</b>' % who
-                    what = self._markupStatus(what)
-                    what += '    <i><span size="x-small" weight="light">%s</span></i>' % when
-                    self.model.insert(0, (image, who, what))
-                    self.widget.scroll_to_point(-1, 1)
+                    row = BasicTimelineRow(who=who, what=what, when=when, 
+                                image=image, odd=odd)
+                    odd = not odd
+                    self.rows.insert(0, row)
+                    row.renderTo(self.timeline_widget)
         finally:
             gobject.timeout_add_seconds(INTERVAL, self._timerCallback)
 
-    def _generateModel(self):
-        return gtk.ListStore(gtk.gdk.Pixbuf, str, str)
-
-    def initializeList(self):
-        column = gtk.TreeViewColumn('', gtk.CellRendererPixbuf(), pixbuf=0)
-        column.set_min_width(50)
-        self._addColumn(self.widget, column)
-
-        cell = gtk.CellRendererText()
-        column = gtk.TreeViewColumn('Who', cell, markup=1)
-        column.set_min_width(20)
-        self._addColumn(self.widget, column)
-
-        cell = gtk.CellRendererText()
-        cell.set_property('wrap-mode', pango.WRAP_WORD)
-        cell.set_property('wrap-width', 300)
-        column = gtk.TreeViewColumn('What', cell, markup=2)
-        self._addColumn(self.widget, column)
-
-    def _markupStatus(self, status):
-        status = status.replace('\n', ' ').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-        pieces = status.split(' ')
-        def markup():
-            for piece in pieces:
-                if not piece:
-                    continue
-                if piece.startswith('@'):
-                    yield '<b>%s</b>' % piece
-                elif piece.startswith('http://'):
-                    yield '<span foreground="blue"><b>%s</b></span>' % piece
-                elif piece.startswith('#'):
-                    yield '<span foreground="#FF7F00"><b>%s</b></span>' % piece
-                elif len(piece) > 2:
-                    if piece[0] == '_' and piece[-1] == '_':
-                        yield '<i>%s</i>' % piece[1:-1]
-                    elif piece[0] == '*' and piece[-1] == '*':
-                        yield '<b>%s</b>' % piece[1:-1]
-                    else:
-                        yield piece
-                else:
-                    yield piece
-
-        return ' '.join(markup())
 
 class RepliesTimeline(Timeline):
     timeline = 'statuses/mentions.json'
@@ -153,3 +123,83 @@ class SearchesTimeline(Timeline):
         self.api.timeline(timeline=timeline, since_id=self.since_id, 
                         callback=self._timerUpdatedCallback, count=self.count)
         return False
+
+class BasicTimelineRow(bases.BaseChildWidget):
+    def _buildContainer(self):
+        container = gtk.HBox()
+        container.set_size_request(350, -1)
+        container.set_homogeneous(False)
+        return container
+
+    def _renderAvatar(self, container):
+        vbox = gtk.VBox()
+        vbox.set_size_request(70, -1)
+        vbox.set_homogeneous(False)
+
+        image = gtk.Image()
+        image.set_from_file(self.image)
+        image.set_size_request(50, 50)
+
+        who = gtk.Label()
+        who.set_markup('<b>%s</b>' % self.who)
+
+        vbox.pack_start(image)
+        vbox.pack_start(who)
+        who.show()
+        image.show()
+        vbox.show()
+
+        container.pack_start(vbox, expand=False, fill=False, padding=3)
+
+    def renderTo(self, parent, start=False):
+        to_show = []
+        container = self._buildContainer()
+        to_show.append(container)
+
+        self._renderAvatar(container)
+
+        what = gtk.Label()
+        self.what = self._markupStatus(self.what)
+        what.set_markup('%s    <i><span size="x-small" weight="light">%s</span></i>' % (
+                self.what, self.when))
+        what.set_size_request(280, -1)
+        what.set_line_wrap(True)
+        what.set_selectable(True)
+        what.set_alignment(0.0, 0.0)
+        to_show.append(what)
+
+        container.pack_start(what, expand=True, fill=True)
+
+        for s in to_show:
+            s.show()
+
+        _method = parent.pack_start
+        if not start:
+            _method = parent.pack_end
+        _method(container)
+
+    def _markupStatus(self, status):
+        status = status.replace('\n', ' ').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        pieces = status.split(' ')
+        def markup():
+            for piece in pieces:
+                if not piece:
+                    continue
+                if piece.startswith('@'):
+                    yield '<b>%s</b>' % piece
+                elif piece.startswith('http://'):
+                    yield '<a href="%s"><b>%s</b></a>' % (piece, piece)
+                elif piece.startswith('#'):
+                    yield '<span foreground="#FF7F00"><b>%s</b></span>' % piece
+                elif len(piece) > 2:
+                    if piece[0] == '_' and piece[-1] == '_':
+                        yield '<i>%s</i>' % piece[1:-1]
+                    elif piece[0] == '*' and piece[-1] == '*':
+                        yield '<b>%s</b>' % piece[1:-1]
+                    else:
+                        yield piece
+                else:
+                    yield piece
+
+        return ' '.join(markup())
+

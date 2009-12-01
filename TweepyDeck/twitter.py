@@ -22,7 +22,6 @@ from TweepyDeck import util
 
 DEFAULT_FETCH = 35
 
-
 class TwitterApi(object):
     user = None
     password = None

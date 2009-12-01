@@ -40,8 +40,6 @@ class Tweep(object):
 
     search_terms = None
 
-    
-
     def destroy(self, widget, data=None):
         gtk.main_quit()
 
@@ -117,16 +115,10 @@ class Tweep(object):
         self.api = twitter.TwitterApi(user, password)
 
 
-        self.friends = timeline.Timeline(self.widget_tree.get_widget('FriendsTreeView'), self.api)
+        self.friends = timeline.Timeline(self.api, 
+                        parent=self.widget_tree.get_widget('DeckHBox'))
         self.timelines.append(self.friends)
-        self.replies = timeline.RepliesTimeline(self.widget_tree.get_widget('RepliesTreeView'), 
-                        self.api)
-        self.timelines.append(self.replies)
-
-        #self.widget_tree.get_widget('SearchScrolledWindow').hide()
-
-        for t in self.timelines:
-            t.start()
+        self.friends.start() # The friends timeline is the only default one
 
         dialog.destroy()
 
@@ -170,6 +162,18 @@ class Tweep(object):
     def search_remove(self, button, **kwargs):
         print ('search_remove', locals())
 
+    def toggle_replies(self, button, **kwargs):
+        if button.get_active():
+            self.replies = timeline.RepliesTimeline(self.api, 
+                            parent=self.widget_tree.get_widget('DeckHBox'))
+            self.timelines.append(self.replies)
+            self.replies.start()
+        else:
+            print ('replies', locals())
+
+    def toggle_followers(self, button, **kwargs):
+        print ('followers', locals())
+
     def __init__(self, *args, **kwargs):
         self.timelines = []
         self.widget_tree = gtk.glade.XML('tweepydeck.glade')
@@ -188,6 +192,9 @@ class Tweep(object):
                 'on_SearchWindowCloseButton_clicked' : self.close_searches,
                 'on_SearchItemAddButton_clicked' : self.search_add,
                 'on_SearchItemRemoveButton_clicked' : self.search_remove,
+                'on_RepliesToggle_toggled' : self.toggle_replies,
+                'on_FollowersToggle_toggled' : self.toggle_followers,
+
             }
         self.widget_tree.signal_autoconnect(self._events)
 

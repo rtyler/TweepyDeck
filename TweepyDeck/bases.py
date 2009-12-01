@@ -5,21 +5,14 @@ class NotImplementedException(Exception):
 
 class BaseListView(object):
     widget = None
-    model = None
     def __init__(self, widget, *args, **kwargs):
         assert widget, ('Need a widget', widget)
         self.widget = widget
-        self.model = self._generateModel()
-        self.widget.set_model(self.model)
 
-    def _addColumn(self, widget, column):
-        column.set_resizable(True)      
-        widget.append_column(column)
+class BaseChildWidget(object):
+    def __init__(self, *args, **kwargs):
+        self.__dict__.update(kwargs)
 
-    def initializeList(self):
-        raise NotImplementedException('Subclass failed to implement initializeList()')
-
-    def _generateModel(self):
-        raise NotImplementedException('Subclass failed to implement _generateModel()')
-
+    def renderTo(self, parent, start=False):
+        raise NotImplementedException('Subclasses should implement renderTo()')
 
