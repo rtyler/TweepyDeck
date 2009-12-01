@@ -4,6 +4,8 @@ import os
 import time
 import urllib2
 
+registry = {}
+
 def readable_time():
     return time.strftime('%H:%M:%S', time.localtime())
 

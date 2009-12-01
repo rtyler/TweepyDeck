@@ -129,17 +129,19 @@ class Tweep(object):
     def search_cancel(self, *args, **kwargs):
         self.widget_tree.get_widget('SearchDialog').hide()
 
-    def search_okay(self, *args, **kwargs):
-        entry = self.widget_tree.get_widget('SearchTermEntry')
-        term = entry.get_text()
-        if not term:
-            return
-
+    def _spawnSearch(self, term):
         search = timeline.SearchesTimeline(self.api, 
                         parent=self.widget_tree.get_widget('DeckHBox'),
                         term=term)
         self.timelines.append(search)
         search.start()
+
+    def search_okay(self, *args, **kwargs):
+        entry = self.widget_tree.get_widget('SearchTermEntry')
+        term = entry.get_text()
+        if not term:
+            return
+        self._spawnSearch(term)
         self.widget_tree.get_widget('SearchDialog').hide()
 
     def toggle_replies(self, button, **kwargs):
@@ -187,7 +189,8 @@ class Tweep(object):
 
 
 def main():
-    Tweep().main()
+    util.registry['app'] = Tweep()
+    util.registry['app'].main()
 
 if __name__ == "__main__":
     main()

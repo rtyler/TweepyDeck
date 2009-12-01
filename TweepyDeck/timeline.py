@@ -145,6 +145,16 @@ class BasicTimelineRow(bases.BaseChildWidget):
 
         container.pack_start(vbox, expand=False, fill=False, padding=3)
 
+    def clickedLink(self, label, uri, data, **kwargs):
+        if not uri.startswith('tweepy://'):
+            return False
+
+        command = uri[9:]
+        command, arg = command.split('/')
+        if command == 'search':
+            util.registry['app']._spawnSearch('#%s' % arg)
+        return True
+
     def renderTo(self, parent, start=False):
         to_show = []
         container = self._buildContainer()
@@ -156,6 +166,7 @@ class BasicTimelineRow(bases.BaseChildWidget):
         self.what = self._markupStatus(self.what)
         what.set_markup('%s    <i><span size="x-small" weight="light">%s</span></i>' % (
                 self.what, self.when))
+        what.connect('activate-link', self.clickedLink, None)
         what.set_size_request(280, -1)
         what.set_line_wrap(True)
         what.set_selectable(True)
@@ -184,7 +195,7 @@ class BasicTimelineRow(bases.BaseChildWidget):
                 elif piece.startswith('http://'):
                     yield '<a href="%s"><b>%s</b></a>' % (piece, piece)
                 elif piece.startswith('#'):
-                    yield '<span foreground="#FF7F00"><b>%s</b></span>' % piece
+                    yield '<a href="tweepy://search/%s">%s</a>' % (''.join(piece[1:]), piece)
                 elif len(piece) > 2:
                     if piece[0] == '_' and piece[-1] == '_':
                         yield '<i>%s</i>' % piece[1:-1]

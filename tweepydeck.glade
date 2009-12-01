@@ -279,6 +279,7 @@
     <property name="title" translatable="yes">Login to TweepyDeck</property>
     <property name="resizable">False</property>
     <property name="modal">True</property>
+    <property name="window_position">center-on-parent</property>
     <property name="icon_name">gtk-connect</property>
     <property name="type_hint">dialog</property>
     <property name="urgency_hint">True</property>
@@ -400,7 +401,8 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="can_default">True</property>
-                <property name="receives_default">False</property>
+                <property name="has_default">True</property>
+                <property name="receives_default">True</property>
                 <property name="use_stock">True</property>
                 <signal name="clicked" handler="on_LoginOkayButton_clicked"/>
               </widget>
@@ -468,6 +470,8 @@
                 <property name="label">gtk-ok</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="can_default">True</property>
+                <property name="has_default">True</property>
                 <property name="receives_default">True</property>
                 <property name="use_stock">True</property>
                 <signal name="clicked" handler="on_SearchDialogOkay_clicked"/>
