@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import with_statement
 
 # Standard library imports
 import base64
@@ -97,6 +98,7 @@ class TwitterApi(object):
             sep = '&'
         data = None
         try:
+            util.get_global('app').in_progress = True
             data = self._fetch('/%s%s%s' % (timeline, sep, urllib.urlencode(args)))
             if loadImages:
                 if search:
@@ -115,12 +117,14 @@ class TwitterApi(object):
                     except Exception, ex:
                         logging.error('Downloading failed: %s %s' % (status, ex))
         finally:
+            util.get_global('app').in_progress = False
             if not callback:
                 return data
             gobject.idle_add(callback, data)
 
     @decorators.threaded
     def update(self, status, in_reply_to=None, callback=None):
+        util.get_global('app').in_progress = True
         args = {'status' : status}
         if in_reply_to:
             args['in_reply_to_status_id'] = in_reply_to
@@ -141,4 +145,5 @@ class TwitterApi(object):
                 gobject.idle_add(callback, data)
         finally:
             connection.close()
+            util.get_global('app').in_progress = False
 

@@ -31,6 +31,9 @@ class Tweep(object):
     widget_tree = None
     last_status = None
     since_id = None
+    progress = None
+    in_progress = False
+    running = True # Used in timers to determine when to die
 
     # Timelines
     friends = None
@@ -40,6 +43,7 @@ class Tweep(object):
     search_terms = None
 
     def destroy(self, widget, data=None):
+        self.running = False
         gtk.main_quit()
 
     def status_key(self, widget, event, **kwargs):
@@ -161,12 +165,21 @@ class Tweep(object):
     def toggle_followers(self, button, **kwargs):
         print ('followers', locals())
 
+    def _pulse_callback(self, *args, **kwargs):
+        if not self.running:
+            return False
+        if self.in_progress and self.progress:
+            self.progress.pulse()
+        return True
+
+
     def __init__(self, *args, **kwargs):
         self.timelines = []
         self.widget_tree = gtk.glade.XML('tweepydeck.glade')
         self.window = self.widget_tree.get_widget('TweepyMainWindow')
         self.window.connect('destroy', self.destroy)
-        self.widget_tree.get_widget('StatusProgressBar').pulse()
+        self.progress = self.widget_tree.get_widget('StatusProgressBar')
+        gobject.timeout_add(100, self._pulse_callback, self)
 
         self._events = {
                 'on_QuitMenuItem_activate' : self.destroy,
