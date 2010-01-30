@@ -19,6 +19,7 @@ import pango
 # TweepyDeck imports
 from TweepyDeck import bases
 from TweepyDeck import notify
+from TweepyDeck import signals
 from TweepyDeck import views
 from TweepyDeck import util
 
@@ -84,6 +85,7 @@ class Timeline(bases.BaseChildWidget):
         self.viewport.add(self.timeline_widget)
 
     def _timerUpdatedCallback(self, data, **kwargs):
+        signals.emit(signals.PROGRESS_STOP)
         if not self.rendered:
             self.renderTo(self.parent)
             self.rendered = True

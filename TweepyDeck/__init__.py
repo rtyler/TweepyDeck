@@ -18,6 +18,7 @@ import gtk.glade
 # TweepyDeck imports
 from TweepyDeck import bases
 from TweepyDeck import decorators
+from TweepyDeck import signals
 from TweepyDeck import timeline
 from TweepyDeck import twitter
 from TweepyDeck import util
@@ -27,13 +28,49 @@ if os.getenv('DEBUG'):
 
 gobject.threads_init()
 
+class ProgressController(object):
+    widget_tree = None
+    window = None
+    widget = None
+    running = True
+    in_progress = False
+
+    def __init__(self, widget_tree, **kwargs):
+        self.widget_tree = widget_tree
+        self.window = self.widget_tree.get_widget('TweepyMainWindow')
+        self.widget = self.widget_tree.get_widget('StatusProgressBar')
+
+        self.window.connect('destroy', self.destroy)
+
+        signals.observe(signals.PROGRESS_START, self.start)
+        signals.observe(signals.PROGRESS_STOP, self.stop)
+
+        gobject.timeout_add(100, self._pulse_callback, self)
+
+    def start(self, *args, **kwargs):
+        self.in_progress = True
+
+    def stop(self, *args, **kwargs):
+        self.in_progress = False
+
+    def _pulse_callback(self, *args, **kwargs):
+        if not self.running:
+            return False
+
+        if self.widget and self.in_progress:
+            self.widget.pulse()
+        return True
+
+    def destroy(self, *args, **kwargs):
+        self.in_progress = False
+        self.running = False
+
+
 class Tweep(object):
     widget_tree = None
     last_status = None
     since_id = None
     progress = None
-    in_progress = False
-    running = True # Used in timers to determine when to die
 
     # Timelines
     friends = None
@@ -43,7 +80,6 @@ class Tweep(object):
     search_terms = None
 
     def destroy(self, widget, data=None):
-        self.running = False
         gtk.main_quit()
 
     def status_key(self, widget, event, **kwargs):
@@ -136,6 +172,7 @@ class Tweep(object):
         self.widget_tree.get_widget('SearchDialog').hide()
 
     def _spawnSearch(self, term):
+        signals.emit(signals.PROGRESS_START)
         search = timeline.SearchesTimeline(self.api, 
                         parent=self.widget_tree.get_widget('DeckHBox'),
                         term=term)
@@ -157,6 +194,7 @@ class Tweep(object):
             self.replies.destroy()
             return
 
+        signals.emit(signals.PROGRESS_START)
         self.replies = timeline.RepliesTimeline(self.api, 
                         parent=self.widget_tree.get_widget('DeckHBox'))
         self.timelines.append(self.replies)
@@ -165,21 +203,13 @@ class Tweep(object):
     def toggle_followers(self, button, **kwargs):
         print ('followers', locals())
 
-    def _pulse_callback(self, *args, **kwargs):
-        if not self.running:
-            return False
-        if self.in_progress and self.progress:
-            self.progress.pulse()
-        return True
-
 
     def __init__(self, *args, **kwargs):
         self.timelines = []
         self.widget_tree = gtk.glade.XML('tweepydeck.glade')
         self.window = self.widget_tree.get_widget('TweepyMainWindow')
         self.window.connect('destroy', self.destroy)
-        self.progress = self.widget_tree.get_widget('StatusProgressBar')
-        gobject.timeout_add(100, self._pulse_callback, self)
+        self.progress = ProgressController(self.widget_tree)
 
         self._events = {
                 'on_QuitMenuItem_activate' : self.destroy,
@@ -203,6 +233,7 @@ class Tweep(object):
 
 
     def main(self):
+        signals.emit(signals.PROGRESS_START)
         gtk.main()
 
 
