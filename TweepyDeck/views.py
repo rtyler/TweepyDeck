@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # Standard library imports
+import gettext
 import logging
 
 # PyGTK imports
@@ -17,12 +18,6 @@ from TweepyDeck import util
 
 views = []
 util.set_global('views', views)
-
-import locale
-import gettext
-locale.setlocale(locale.LC_ALL, '')
-gettext.bindtextdomain('tweepydeck', 'locale')
-gettext.textdomain('tweepydeck')
 _ = gettext.gettext
 
 class AbstractRow(bases.BaseChildWidget):

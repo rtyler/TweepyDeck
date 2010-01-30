@@ -2,6 +2,8 @@
 
 # Standard library imports
 import getpass
+import gettext
+import locale
 import logging
 import os.path
 import time
@@ -27,6 +29,9 @@ if os.getenv('DEBUG'):
     logging.basicConfig(level=logging.DEBUG)
 
 gobject.threads_init()
+locale.setlocale(locale.LC_ALL, '')
+gettext.bindtextdomain('tweepydeck', 'locale')
+gettext.textdomain('tweepydeck')
 
 class ProgressController(object):
     widget_tree = None
