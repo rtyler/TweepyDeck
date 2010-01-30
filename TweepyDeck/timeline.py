@@ -18,6 +18,7 @@ import pango
 
 # TweepyDeck imports
 from TweepyDeck import bases
+from TweepyDeck import notify
 from TweepyDeck import views
 from TweepyDeck import util
 
@@ -27,12 +28,14 @@ class Timeline(bases.BaseChildWidget):
     api = None
     since_id = None
     timeline = 'statuses/home_timeline.json'
+    name = 'Friends timeline'
     users = None
     rows = None
     rendered = False
     parent = None
     timeline_widget = None
     run = True
+    can_close = False
 
     def __init__(self, api, **kwargs):
         super(Timeline, self).__init__(**kwargs)
@@ -88,8 +91,13 @@ class Timeline(bases.BaseChildWidget):
         try:
             if data:
                 logging.debug('_timerUpdatedCallback [%s], # items: %s' % (self.timeline, len(data)))
+
+                notify.notify('%s updated' % self.name,
+                        '%d new tweets :)' % len(data), None)
                 self.since_id = data[0]['id']
                 data.reverse()
+
+
                 for i, status in enumerate(data):
                     what = status['text']
                     
@@ -121,11 +129,14 @@ class Timeline(bases.BaseChildWidget):
 
 class RepliesTimeline(Timeline):
     timeline = 'statuses/mentions.json'
+    name = 'Replies timeline'
 
 class SearchesTimeline(Timeline):
     timeline = 'search.json'
     term = None
     count = 30
+    can_close = True
+    name = property(fget=lambda s: '%s search timeline' % s.term)
 
     def _grabNecessities(self, status):
         return status['from_user'], status['created_at'], status['profile_image_url']
