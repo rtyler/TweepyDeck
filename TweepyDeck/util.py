@@ -42,3 +42,9 @@ def saveImageToFile(who, img_url):
     with open(img, 'w') as fd:
         fd.write(data)
     return img
+
+def escape(buffer):
+    ''' Prepare a buffer to be used as Pango markup '''
+    return buffer.replace('&', '&amp;')
+
+
