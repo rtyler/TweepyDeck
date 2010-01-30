@@ -14,6 +14,7 @@ except ImportError:
 
 
 def notify(title, body, iconname):
+    logging.debug('notifying (title, body): (%s, %s)' % (title, body))
     if USE_LIBNOTIFY:
         n = pynotify.Notification(title, body, iconname)
         n.set_urgency(pynotify.URGENCY_NORMAL)

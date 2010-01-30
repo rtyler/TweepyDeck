@@ -28,7 +28,7 @@ class Timeline(bases.BaseChildWidget):
     api = None
     since_id = None
     timeline = 'statuses/home_timeline.json'
-    name = 'Friends timeline'
+    name = 'Home timeline'
     users = None
     rows = None
     rendered = False
@@ -98,7 +98,6 @@ class Timeline(bases.BaseChildWidget):
                 self.since_id = data[0]['id']
                 data.reverse()
 
-
                 for i, status in enumerate(data):
                     what = status['text']
                     
@@ -137,7 +136,7 @@ class SearchesTimeline(Timeline):
     term = None
     count = 30
     can_close = True
-    name = property(fget=lambda s: '%s search timeline' % s.term)
+    name = property(fget=lambda s: '%s timeline' % s.term)
 
     def _grabNecessities(self, status):
         return status['from_user'], status['created_at'], status['profile_image_url']
