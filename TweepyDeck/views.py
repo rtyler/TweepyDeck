@@ -183,7 +183,7 @@ class Status(object):
             util.get_global('app')._spawnSearch('#%s' % arg)
         return True
 
-    def widget(self):
+    def _widget(self):
         roundedbox = RoundedBox()
         roundedbox.show()
 
@@ -206,6 +206,8 @@ class Status(object):
         what.show()
         return roundedbox
 
+    widget = property(fget=_widget)
+
 
 class BasicRow(AbstractRow):
     @classmethod
@@ -214,7 +216,7 @@ class BasicRow(AbstractRow):
 
     def _renderStatus(self, container):
         self.status = Status(self.what, self.when)
-        container.pack_start(self.status.widget(), expand=True, fill=True)
+        container.pack_start(self.status.widget, expand=True, fill=True)
 
     def _render(self, container):
         self._renderAvatar(container)
