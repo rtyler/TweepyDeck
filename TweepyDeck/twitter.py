@@ -3,14 +3,18 @@
 # Standard library imports
 import base64
 import httplib
-import logging 
+import logging
+import os
 import string
 import urllib
 
 try:
-    import json
+    import yajl as json
 except ImportError:
-    import simplejson as json
+    try:
+        import simplejson as json
+    except ImportError:
+        import json
 
 # PyGTK imports
 import gobject
@@ -21,11 +25,14 @@ from TweepyDeck import util
 
 
 DEFAULT_FETCH = 35
+TWITTER_DOMAIN = 'twitter.com'
+DEBUG_HOME_FILE = 'hometimeline.json'
+DEBUG_SEARCH_FILE = 'searchtimeline.json'
 
 class TwitterApi(object):
     user = None
     password = None
-    
+
     def __init__(self, user, password, **kwargs):
         self.user = user
         self.password = password
@@ -34,15 +41,38 @@ class TwitterApi(object):
         return 'Basic ' + string.strip(base64.encodestring(self.user + ':' + self.password))
 
     def _fetch(self, url):
+        is_search = url.startswith('/search.json')
         logging.debug('_fetch("%s")' % url)
-        connection = httplib.HTTPSConnection('twitter.com')
+        if os.environ.get('DEBUG') and os.environ.get('USEFILES'):
+            if not is_search:
+                with open(DEBUG_HOME_FILE, 'r') as fd:
+                    return json.loads(fd.read())
+            else:
+                with open(DEBUG_SEARCH_FILE, 'r') as fd:
+                    return json.loads(fd.read())
+
+        connection = None
+        if is_search:
+            connection = httplib.HTTPConnection(TWITTER_DOMAIN)
+        else:
+            connection = httplib.HTTPSConnection(TWITTER_DOMAIN)
         connection.putrequest('GET', url)
-        connection.putheader('Authorization', self._auth_header())
+        if not is_search:
+            # No need to send extra bits in for searches
+            connection.putheader('Authorization', self._auth_header())
         connection.endheaders()
 
         try:
             response = connection.getresponse()
-            return json.loads(response.read())
+            data = response.read()
+            if os.environ.get('DEBUG'):
+                if is_search:
+                    with open(DEBUG_SEARCH_FILE, 'w') as fd:
+                        fd.write(data)
+                else:
+                    with open(DEBUG_HOME_FILE, 'w') as fd:
+                        fd.write(data)
+            return json.loads(data)
         except Exception, ex:
             logging.error(ex)
             return []
@@ -50,7 +80,7 @@ class TwitterApi(object):
             connection.close()
 
     @decorators.threaded
-    def timeline(self, timeline=None, since_id=None, count=DEFAULT_FETCH, 
+    def timeline(self, timeline=None, since_id=None, count=DEFAULT_FETCH,
             callback=None, loadImages=True):
         args = {'count' : count}
         search = False
@@ -87,7 +117,7 @@ class TwitterApi(object):
         finally:
             if not callback:
                 return data
-            gobject.idle_add(callback, data) 
+            gobject.idle_add(callback, data)
 
     @decorators.threaded
     def update(self, status, in_reply_to=None, callback=None):
@@ -100,7 +130,7 @@ class TwitterApi(object):
                 'Accept' : 'text/plain',
             }
         headers['Authorization'] = self._auth_header()
-        connection = httplib.HTTPSConnection('twitter.com')
+        connection = httplib.HTTPSConnection(TWITTER_DOMAIN)
         connection.request('POST', '/statuses/update.json', args, headers)
         try:
             response = connection.getresponse()
