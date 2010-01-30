@@ -104,22 +104,25 @@ class BasicRow(AbstractRow):
 
 
     def _markupStatus(self, status):
-        status = status.replace('\n', ' ').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        status = status.replace('\n', ' ').replace('&', '&amp;')
         pieces = status.split(' ')
         def markup():
             for piece in pieces:
                 if not piece:
                     continue
-                if piece.startswith('@'):
+                if piece.startswith('@') and len(piece) >= 2:
                     yield '<b>%s</b>' % piece
                 elif piece.startswith('http://'):
                     yield '<a href="%s"><b>%s</b></a>' % (piece, piece)
-                elif piece.startswith('#'):
+                elif piece.startswith('#') and len(piece) >= 3:
+                    # If it's a two-character or larger hashtag, mark it up
                     yield '<a href="tweepy://search/%s">%s</a>' % (''.join(piece[1:]), piece)
                 elif len(piece) > 2:
                     if piece[0] == '_' and piece[-1] == '_':
+                        # pieces that are _underlined_ should be emphasized
                         yield '<i>%s</i>' % piece[1:-1]
                     elif piece[0] == '*' and piece[-1] == '*':
+                        # pieces that are *bolded* should be 
                         yield '<b>%s</b>' % piece[1:-1]
                     else:
                         yield piece
