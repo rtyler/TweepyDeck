@@ -23,7 +23,10 @@ def cachedImagePath(who):
 def saveImageToFile(who, img_url):
     img = cachedImagePath(who)
     if os.path.exists(img):
-        return img
+        st = os.stat(img)
+        # If the image is less than a day old, let's use it
+        if not time.time() >= (st.st_ctime + 86400):
+            return img
 
     try:
         web_fd = urllib2.urlopen(img_url)
