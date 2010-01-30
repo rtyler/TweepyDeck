@@ -19,13 +19,22 @@ views = []
 util.set_global('views', views)
 
 class AbstractRow(bases.BaseChildWidget):
+    user = None
+    fullname = None
+    who = None
+    when = None
+    image = None
+    what = None
+
     @classmethod
     def matchForText(cls, text):
         return False
 
     @classmethod
     def rowForText(cls, text):
+        user = text['user']
         who = text['user']['screen_name']
+        fullname = text['user']['name']
         when = text['created_at']
         image = util.saveImageToFile(who, text['user']['profile_image_url'])
         what = text['text']
@@ -48,6 +57,9 @@ class AbstractRow(bases.BaseChildWidget):
         container.show()
         return container
 
+    def _avatarTooltip(self):
+        return None
+
     def _renderAvatar(self, container):
         vbox = gtk.VBox()
         vbox.set_size_request(70, -1)
@@ -64,6 +76,12 @@ class AbstractRow(bases.BaseChildWidget):
         vbox.pack_start(who)
         who.show()
         image.show()
+
+        tooltip = self._avatarTooltip()
+        if tooltip:
+            vbox.set_tooltip_markup(tooltip)
+
+
         vbox.show()
 
         container.pack_start(vbox, expand=False, fill=False, padding=3)
@@ -101,6 +119,15 @@ class BasicRow(AbstractRow):
     def _render(self, container):
         self._renderAvatar(container)
         self._renderStatus(container)
+
+    def _avatarTooltip(self):
+        return '''<b>Name:</b> %s
+<b>About:</b> %s
+<b>Where:</b> %s
+<b>Following back:</b> %s''' % (util.escape(self.fullname),
+        util.escape(self.user['description']),
+        util.escape(self.user['time_zone']),
+        self.user['following'] and 'yes' or 'no')
 
 
     def _markupStatus(self, status):
@@ -147,6 +174,9 @@ class SearchRow(BasicRow):
         image = util.saveImageToFile(who, text['profile_image_url'])
         what = text['text']
         return cls(**locals())
+
+    def _avatarTooltip(self):
+        return None
 
 views.insert(0, SearchRow)
 
