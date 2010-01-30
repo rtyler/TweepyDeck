@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-
 # Standard library imports
 import getpass
 import logging
@@ -110,7 +109,10 @@ class Tweep(object):
         login_entry = self.widget_tree.get_widget('UsernameEntry')
         pass_entry = self.widget_tree.get_widget('PasswordEntry')
 
-        user, password = login_entry.get_text(), pass_entry.get_text()
+        if os.environ.get('TUSER'):
+            user, password = os.environ['TUSER'], os.environ['TPASS']
+        else:
+            user, password = login_entry.get_text(), pass_entry.get_text()
         
         self.api = twitter.TwitterApi(user, password)
 
