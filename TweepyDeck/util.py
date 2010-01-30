@@ -45,6 +45,6 @@ def saveImageToFile(who, img_url):
 
 def escape(buffer):
     ''' Prepare a buffer to be used as Pango markup '''
-    return buffer.replace('&', '&amp;')
+    return buffer.replace('&', '&amp;').replace('\n', ' ')
 
 
