@@ -70,6 +70,7 @@ class Timeline(bases.BaseChildWidget):
 
     def renderTo(self, parent, start=False):
         self.scrolled_window = gtk.ScrolledWindow()
+        self.scrolled_window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         self.scrolled_window.show()
         parent.pack_start(self.scrolled_window)
 
