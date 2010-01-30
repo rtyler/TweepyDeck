@@ -147,13 +147,16 @@ class Tweep(object):
         self.widget_tree.get_widget('SearchDialog').hide()
 
     def toggle_replies(self, button, **kwargs):
-        if button.get_active():
-            self.replies = timeline.RepliesTimeline(self.api, 
-                            parent=self.widget_tree.get_widget('DeckHBox'))
-            self.timelines.append(self.replies)
-            self.replies.start()
-        else:
-            print ('replies', locals())
+        if not button.get_active():
+            # Remove the RepliesTimeline from our list and destroy the object
+            self.timelines = [t for t in self.timelines if not t is self.replies]
+            self.replies.destroy()
+            return
+
+        self.replies = timeline.RepliesTimeline(self.api, 
+                        parent=self.widget_tree.get_widget('DeckHBox'))
+        self.timelines.append(self.replies)
+        self.replies.start()
 
     def toggle_followers(self, button, **kwargs):
         print ('followers', locals())

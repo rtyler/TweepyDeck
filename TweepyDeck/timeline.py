@@ -32,6 +32,7 @@ class Timeline(bases.BaseChildWidget):
     rendered = False
     parent = None
     timeline_widget = None
+    run = True
 
     def __init__(self, api, **kwargs):
         super(Timeline, self).__init__(**kwargs)
@@ -42,16 +43,27 @@ class Timeline(bases.BaseChildWidget):
     def start(self):
         self.reset_timer()
 
+    def stop(self):
+        self.run = False
+
     def reset_timer(self):
         gobject.timeout_add_seconds(1, self._timerCallback)
 
     def _timerCallback(self, **kwargs):
+        if not self.run:
+            return False
         self.api.timeline(timeline=self.timeline, since_id=self.since_id, 
                         callback=self._timerUpdatedCallback)
         return False
 
     def _grabNecessities(self, status):
         return status['user']['screen_name'], status['created_at'], status['user']['profile_image_url']
+
+    def destroy(self, **kwargs):
+        self.stop()
+        if not self.scrolled_window:
+            return
+        self.scrolled_window.destroy()
 
     def renderTo(self, parent, start=False):
         self.scrolled_window = gtk.ScrolledWindow()
