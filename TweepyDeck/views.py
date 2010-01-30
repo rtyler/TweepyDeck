@@ -193,7 +193,7 @@ class Status(object):
                 labelbox.get_colormap().alloc_color(roundedbox.color))
 
         what = gtk.Label()
-        what.set_markup('%s    <i><span size="x-small" weight="light">%s</span></i>' %
+        what.set_markup('%s\n<i><span size="x-small" weight="light">%s</span></i>' %
                 (self.markup_text(self.text), self.timestamp))
         what.connect('activate-link', self.clickedLink, None)
         what.set_size_request(280, -1)
