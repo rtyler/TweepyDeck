@@ -18,6 +18,13 @@ from TweepyDeck import util
 views = []
 util.set_global('views', views)
 
+import locale
+import gettext
+locale.setlocale(locale.LC_ALL, '')
+gettext.bindtextdomain('tweepydeck', 'locale')
+gettext.textdomain('tweepydeck')
+_ = gettext.gettext
+
 class AbstractRow(bases.BaseChildWidget):
     user = None
     fullname = None
@@ -121,17 +128,19 @@ class BasicRow(AbstractRow):
         self._renderStatus(container)
 
     def _avatarTooltip(self):
-        return '''<b>Name:</b> %s
-<b>About:</b> %s
-<b>Where:</b> %s
-<b>Following back:</b> %s''' % (util.escape(self.fullname),
-        util.escape(self.user['description']),
-        util.escape(self.user['time_zone']),
-        self.user['following'] and 'yes' or 'no')
+        tooltip  = _('''<b>Name:</b> %(name)s
+<b>About:</b> %(description)s
+<b>Where:</b> %(time_zone)s
+<b>Following back:</b> %(following)s''')
+        return tooltip % {
+        'name' : util.escape(self.fullname),
+        'description' : util.escape(self.user['description']),
+        'time_zone' : util.escape(self.user['time_zone']),
+        'following' : self.user['following'] and _('yes') or _('no')}
 
 
     def _markupStatus(self, status):
-        status = status.replace('\n', ' ').replace('&', '&amp;')
+        status = util.escape(status)
         pieces = status.split(' ')
         def markup():
             for piece in pieces:
