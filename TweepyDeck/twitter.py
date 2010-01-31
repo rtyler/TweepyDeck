@@ -22,6 +22,7 @@ import gobject
 
 # TweepyDeck imports
 from TweepyDeck import decorators
+from TweepyDeck import signals
 from TweepyDeck import util
 
 
@@ -124,7 +125,7 @@ class TwitterApi(object):
 
     @decorators.threaded
     def update(self, status, in_reply_to=None, callback=None):
-        util.get_global('app').in_progress = True
+        signals.emit(signals.PROGRESS_START)
         args = {'status' : status}
         if in_reply_to:
             args['in_reply_to_status_id'] = in_reply_to
@@ -145,5 +146,26 @@ class TwitterApi(object):
                 gobject.idle_add(callback, data)
         finally:
             connection.close()
-            util.get_global('app').in_progress = False
+            signals.emit(signals.PROGRESS_STOP)
+
+    @decorators.threaded
+    def retweet(self, status_id, callback=None):
+        signals.emit(signals.PROGRESS_START)
+        headers = {
+                'Content-type' : 'application/x-www-form-urlencoded',
+                'Accept' : 'text/plain',
+            }
+        headers['Authorization'] = self._auth_header()
+        connection = httplib.HTTPSConnection(TWITTER_DOMAIN)
+        connection.request('POST', '/statuses/retweet/%s.json' % status_id, '', headers)
+        try:
+            response = connection.getresponse()
+            data = json.loads(response.read())
+            if not callback:
+                return data
+            else:
+                gobject.idle_add(callback, data)
+        finally:
+            connection.close()
+            signals.emit(signals.PROGRESS_STOP)
 
