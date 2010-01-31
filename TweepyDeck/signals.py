@@ -22,13 +22,13 @@ def observe(the_signal, callback):
             __signals = {}
         __signals.setdefault(the_signal, []).append(callback)
 
-def emit(the_signal):
+def emit(the_signal, **kwargs):
     global __signals
     with __main_lock:
         if __signals is None or not __signals.get(the_signal):
             return
         for callback in __signals[the_signal]:
-            gobject.idle_add(callback)
+            gobject.idle_add(lambda: callback(**kwargs))
     
 
 
