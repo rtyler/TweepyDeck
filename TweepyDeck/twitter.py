@@ -125,6 +125,7 @@ class TwitterApi(object):
 
     @decorators.threaded
     def update(self, status, in_reply_to=None, callback=None):
+        logging.debug('update("%s", in_reply_to=%s)' % (status, in_reply_to))
         signals.emit(signals.PROGRESS_START)
         args = {'status' : status}
         if in_reply_to:
@@ -150,6 +151,7 @@ class TwitterApi(object):
 
     @decorators.threaded
     def retweet(self, status_id, callback=None):
+        logging.debug('retweet(%s)' % status_id)
         signals.emit(signals.PROGRESS_START)
         headers = {
                 'Content-type' : 'application/x-www-form-urlencoded',

@@ -76,6 +76,8 @@ class Tweep(object):
     last_status = None
     since_id = None
     progress = None
+    reply_id = None
+    reply_author = None
 
     # Timelines
     friends = None
@@ -94,7 +96,15 @@ class Tweep(object):
                 self.last_status = status
                 self.statusbar = 'Updating...'
                 self.statusentry = ''
-                self.api.update(status, callback=self._status_complete)
+                in_reply_to = None
+                if status.startswith('@%s' % self.reply_author):
+                    in_reply_to = self.reply_id
+
+                self.api.update(status, in_reply_to=in_reply_to,
+                        callback=self._status_complete)
+
+                self.reply_author = None
+                self.reply_id = None
     
     def status_autocomplete(self, widget, event, **kwargs):
         if not gtk.gdk.keyval_name(event.keyval) == 'Tab':
@@ -208,6 +218,15 @@ class Tweep(object):
     def toggle_followers(self, button, **kwargs):
         print ('followers', locals())
 
+    def setup_reply(self, **kwargs):
+        if not kwargs.get('tweet_id') or not kwargs.get('author'):
+            return
+
+        self.reply_id = kwargs['tweet_id']
+        self.reply_author = kwargs['author']
+        textfield = self.widget_tree.get_widget('StatusEntry')
+        textfield.set_text('@%s ' % self.reply_author)
+
 
     def __init__(self, *args, **kwargs):
         self.timelines = []
@@ -215,6 +234,7 @@ class Tweep(object):
         self.window = self.widget_tree.get_widget('TweepyMainWindow')
         self.window.connect('destroy', self.destroy)
         self.progress = ProgressController(self.widget_tree)
+        signals.observe(signals.TWEET_REPLY_TO, self.setup_reply)
 
         self._events = {
                 'on_QuitMenuItem_activate' : self.destroy,

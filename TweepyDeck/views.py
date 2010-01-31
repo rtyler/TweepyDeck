@@ -16,6 +16,7 @@ import gtk.gdk
 # TweepyDeck imports
 from TweepyDeck import bases
 from TweepyDeck import decorators
+from TweepyDeck import signals
 from TweepyDeck import util
 
 views = []
@@ -182,7 +183,8 @@ class Status(object):
         return ' '.join(self._markup_generator(pieces))
 
     def on_reply_clicked(self, *args, **kwargs):
-        print ('Reply to:', self.tweet_id, self.author)
+        signals.emit(signals.TWEET_REPLY_TO, tweet_id=self.tweet_id,
+                    author=self.author)
 
     def on_retweet_clicked(self, *args, **kwargs):
         app = util.get_global('app')

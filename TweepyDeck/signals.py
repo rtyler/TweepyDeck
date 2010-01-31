@@ -10,7 +10,7 @@ import gobject
 # Enumeration of signals
 PROGRESS_START = -100
 PROGRESS_STOP  = -101
-
+TWEET_REPLY_TO = -102
 
 __main_lock = threading.RLock()
 __signals = None
