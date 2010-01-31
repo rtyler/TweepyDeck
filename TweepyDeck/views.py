@@ -29,6 +29,7 @@ class AbstractRow(bases.BaseChildWidget):
     when = None
     image = None
     what = None
+    tweet_id = None
 
     @classmethod
     def matchForText(cls, text):
@@ -42,6 +43,7 @@ class AbstractRow(bases.BaseChildWidget):
         when = text['created_at']
         image = util.saveImageToFile(who, text['user']['profile_image_url'])
         what = text['text']
+        tweet_id = text['id']
         return cls(**locals())
 
     def _renderContainer(self):
@@ -79,6 +81,8 @@ class AbstractRow(bases.BaseChildWidget):
 
     def renderTo(self, parent, start=False):
         container = self._renderContainer()
+        ## Setting this setting for our status action buttons
+        container.get_settings().set_long_property('gtk-button-images', 1, '')
 
         self._render(container)
 
@@ -138,10 +142,14 @@ class RoundedBox(gtk.EventBox):
         win.shape_combine_mask(bitmap, 0, 0)
 
 class Status(object):
+    tweet_id = None
+    author = None
     text = None
     timestamp = None
 
-    def __init__(self, text, when, **kwargs):
+    def __init__(self, tweet_id, author, text, when, **kwargs):
+        self.tweet_id = tweet_id
+        self.author = author
         self.text = text
         self.timestamp = when
 
@@ -173,6 +181,15 @@ class Status(object):
         pieces = status.split(' ')
         return ' '.join(self._markup_generator(pieces))
 
+    def on_reply_clicked(self, *args, **kwargs):
+        print ('Reply to:', self.tweet_id, self.author)
+
+    def on_retweet_clicked(self, *args, **kwargs):
+        app = util.get_global('app')
+        if not app:
+            return
+        app.api.retweet(self.tweet_id)
+
     def clickedLink(self, label, uri, data, **kwargs):
         if not uri.startswith('tweepy://'):
             return False
@@ -184,8 +201,55 @@ class Status(object):
         return True
 
     def _widget(self):
+        '''
+          +-------------------------VBox----------------+
+          |+-------------------------------RoundedBox--+|
+          ||+--------------------EventBox-------------+||
+          |||                                         |||
+          |||      Label                              |||
+          ||+-----------------------------------------+||
+          |+-------------------------------------------+|
+          |---------------------------------------------|
+          |+---------------------------HButtonBox------+|
+          ||                           [Button][Button]||
+          |+-------------------------------------------+|
+          +---------------------------------------------+
+        '''
+        vbox = gtk.VBox()
+        vbox.set_homogeneous(False)
+        vbox.show()
+
         roundedbox = RoundedBox()
         roundedbox.show()
+
+        buttonbox = gtk.HButtonBox()
+        buttonbox.set_layout(gtk.BUTTONBOX_END)
+        buttonbox.show()
+
+        def actionButton(tooltip):
+            button = gtk.Button(label='')
+            button.set_tooltip_text(tooltip)
+            button.set_size_request(8, 12)
+            button.show()
+            return button
+
+        reply = actionButton('Reply to Tweet')
+        re_image = gtk.Image()
+        re_image.set_from_stock(gtk.STOCK_UNDO, gtk.ICON_SIZE_BUTTON)
+        reply.set_image(re_image)
+        reply.connect('clicked', self.on_reply_clicked)
+
+        retweet = actionButton('Retweet')
+        rt_image = gtk.Image()
+        rt_image.set_from_stock(gtk.STOCK_REFRESH, gtk.ICON_SIZE_BUTTON)
+        retweet.set_image(rt_image)
+        retweet.connect('clicked', self.on_retweet_clicked)
+
+        buttonbox.add(reply)
+        buttonbox.add(retweet)
+
+        vbox.add(roundedbox)
+        vbox.add(buttonbox)
 
         labelbox = gtk.EventBox()
         labelbox.set_border_width(5)
@@ -204,7 +268,8 @@ class Status(object):
         roundedbox.add(labelbox)
         labelbox.show()
         what.show()
-        return roundedbox
+
+        return vbox
 
     widget = property(fget=_widget)
 
@@ -215,7 +280,7 @@ class BasicRow(AbstractRow):
         return True
 
     def _renderStatus(self, container):
-        self.status = Status(self.what, self.when)
+        self.status = Status(self.tweet_id, self.who, self.what, self.when)
         container.pack_start(self.status.widget, expand=True, fill=True)
 
     def _render(self, container):
